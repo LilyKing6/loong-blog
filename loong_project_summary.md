@@ -38,6 +38,7 @@
 - ✅ 文档后端（M4）完成：页面 CRUD、版本管理、导航树、版本记录、搜索、Markdown 渲染入口（20 个路由，docs/state.lo + docs/docs.lo）
 - ✅ 前端应用（M5）完成：博客前端（6 页面）、文档前端（4 页面）、管理后台（7 页面，含登录 + 编辑器），Node.js + EJS SSR，实时 Markdown 预览
 - ✅ 体验增强（M6）完成：SEO（meta+OG+sitemap+robots）、RSS feed、示例数据扩充（5 文章+4 文档页）、Docker 化（Dockerfile+compose）、错误页增强
+- ✅ 推广级打磨（M7）完成：API 参考文档页面（50 端点）、内存缓存（TTL 60s + 写操作失效）
 
 ## 推荐文件
 - `loong_web_framework_design.md`

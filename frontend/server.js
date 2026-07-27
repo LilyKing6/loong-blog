@@ -65,12 +65,53 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+
+// ===== Simple TTL Cache =====
+const cache = new Map();
+const CACHE_TTL = 60000; // 60 seconds
+
+function cacheGet(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.time > CACHE_TTL) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function cacheSet(key, data) {
+  cache.set(key, { data, time: Date.now() });
+}
+
+function cacheInvalidate(prefix) {
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key);
+  }
+}
+
+async function cachedApi(endpoint, cacheKey) {
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+  const data = await api(endpoint);
+  cacheSet(cacheKey, data);
+  return data;
+}
+
+async function cachedDocsApi(endpoint, cacheKey) {
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+  const data = await docsApi(endpoint);
+  cacheSet(cacheKey, data);
+  return data;
+}
+
 // ===== Blog Routes =====
 
 app.get('/', async (req, res) => {
   try {
     const [postsData, catsData, tagsData] = await Promise.all([
-      api('/posts?status=published'), api('/categories'), api('/tags')
+      api('/posts?status=published'), cachedApi('/categories', 'blog:categories'), cachedApi('/tags', 'blog:tags')
     ]);
     res.render('home', {
       posts: await resolveTags((postsData.posts || []).slice(0, 5)),
@@ -116,7 +157,7 @@ app.get('/post', async (req, res) => {
 
 app.get('/categories', async (req, res) => {
   try {
-    const [cd, td] = await Promise.all([api('/categories'), api('/tags')]);
+    const [cd, td] = await Promise.all([cachedApi('/categories', 'blog:categories'), cachedApi('/tags', 'blog:tags')]);
     res.render('categories', { categories: cd.categories || [], tags: td.tags || [], active: 'categories', formatDate, excerpt, renderMarkdown, error: null });
   } catch (e) {
     res.render('categories', { categories: [], tags: [], active: 'categories', formatDate, excerpt, renderMarkdown, error: e.message });
@@ -125,7 +166,7 @@ app.get('/categories', async (req, res) => {
 
 app.get('/tags', async (req, res) => {
   try {
-    const td = await api('/tags');
+    const td = await cachedApi('/tags', 'blog:tags');
     res.render('tags', { tags: td.tags || [], active: 'tags', formatDate, excerpt, renderMarkdown, error: null });
   } catch (e) {
     res.render('tags', { tags: [], active: 'tags', formatDate, excerpt, renderMarkdown, error: e.message });
@@ -319,6 +360,7 @@ app.post('/admin/posts/save', requireAdmin, async (req, res) => {
         body: new URLSearchParams({ title, body, slug, status: status || 'draft', categoryId: categoryId || '0' }).toString()
       });
     }
+    cacheInvalidate('blog:');
     res.redirect('/admin/posts');
   } catch (e) {
     res.redirect('/admin/posts');
@@ -334,6 +376,7 @@ app.post('/admin/posts/:slug/delete', requireAdmin, async (req, res) => {
       headers: { Cookie: 'loong_session=' + token }
     });
   } catch {}
+  cacheInvalidate('blog:');
   res.redirect('/admin/posts');
 });
 
@@ -357,6 +400,7 @@ app.post('/admin/categories/create', requireAdmin, async (req, res) => {
       body: new URLSearchParams({ slug: req.body.slug, name: req.body.name }).toString()
     });
   } catch {}
+  cacheInvalidate('blog:');
   res.redirect('/admin/categories');
 });
 
@@ -380,6 +424,7 @@ app.post('/admin/tags/create', requireAdmin, async (req, res) => {
       body: new URLSearchParams({ slug: req.body.slug, name: req.body.name }).toString()
     });
   } catch {}
+  cacheInvalidate('blog:');
   res.redirect('/admin/tags');
 });
 
@@ -439,6 +484,18 @@ app.get('/sitemap.xml', async (req, res) => {
     res.set('Content-Type', 'application/xml');
     res.send('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
   }
+});
+
+
+// ===== API Docs =====
+app.get('/api-docs', (req, res) => {
+  res.render('api-docs', {
+    blogApiUrl: BLOG_API_URL,
+    docsApiUrl: DOCS_API_URL,
+    active: 'api',
+    title: 'API Reference — Loong Blog',
+    formatDate, excerpt, renderMarkdown, error: null
+  });
 });
 
 // ===== 404 =====

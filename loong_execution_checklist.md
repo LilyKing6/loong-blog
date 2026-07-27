@@ -77,7 +77,9 @@ $LOC build --manifest loong.toml --target docs
 - [x] RSS / sitemap（feed.xml + sitemap.xml）
 - [x] 示例数据（博客 5 篇文章 + 3 评论；文档 4 页面 + 4 导航节点）
 - [x] Docker（Dockerfile + docker-compose.yml，后端+前端编排）
-- [ ] API 文档（留待 M7）
+- [x] API 文档（/api-docs 页面，50 个端点完整参考）
+
+- [x] 性能与缓存（内存 TTL 缓存 60s，写操作自动失效）
 
 ## 平台级完成
 - [x] Loong 新语法迁移：全部 25 个 `.lo` 源文件迁移到新语法（39 struct、3 enum、~50 个 lambda）

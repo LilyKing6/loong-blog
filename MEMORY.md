@@ -67,3 +67,10 @@ path 依赖消费它们。
 - Docker 化：Dockerfile + docker-compose.yml（后端 Loong + 前端 Node 编排）
 - 错误页增强：404/500 友好提示 + 返回链接
 - 编辑器预览：实时 Markdown 双栏预览（M5 已完成，M6 确认）
+
+# M7 推广级打磨完成
+
+2026-07-27：完成 M7 最后两个子项，项目全部里程碑 M1-M7 完成：
+- API 文档：/api-docs 页面，覆盖全部 50 个端点（blog 30 + docs 20），含请求/响应示例
+- 性能缓存：内存 TTL 缓存（60s），缓存 categories/tags/versions/nav 等不常变数据，写操作自动失效
+- Docker、示例数据、错误页增强已在 M6 完成

@@ -1,0 +1,96 @@
+<div class="post-list">
+  <h2>API Reference</h2>
+  <p style="color:#5a6e5a;margin-bottom:24px">Base URL: <code><%= blogApiUrl %></code> (blog) · <code><%= docsApiUrl %></code> (docs)</p>
+
+  <h3 style="margin-top:32px">Authentication</h3>
+  <table class="admin-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/auth/login</code></td><td>—</td><td>Login, returns Set-Cookie <code>loong_session</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/auth/me</code></td><td>cookie</td><td>Get current user info</td></tr>
+    </tbody>
+  </table>
+  <pre style="margin-top:12px"><code># Login
+curl -X POST http://localhost:8080/api/auth/login -d "user=admin"
+
+# Response: 200
+{ "status": "ok", "user": "admin" }
+# Set-Cookie: loong_session=demo-admin</code></pre>
+
+  <h3 style="margin-top:32px">Blog API</h3>
+  <table class="admin-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Params</th></tr></thead>
+    <tbody>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/health</code></td><td>—</td><td>—</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/posts</code></td><td>—</td><td><code>?status=all|published|draft</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/post</code></td><td>—</td><td><code>?slug=hello-loong</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/posts</code></td><td>blog.write</td><td>title, body, slug, status, categoryId, tagIds</td></tr>
+      <tr><td><span class="product_btn small">PUT</span></td><td><code>/api/blog/posts</code></td><td>blog.write</td><td><code>?slug=</code> + title, body, newSlug, status</td></tr>
+      <tr><td><span class="product_btn small">DELETE</span></td><td><code>/api/blog/posts</code></td><td>blog.write</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/posts/publish</code></td><td>blog.write</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/posts/draft</code></td><td>blog.write</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/categories</code></td><td>—</td><td>—</td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/categories</code></td><td>blog.write</td><td>slug, name</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/category</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">PUT</span></td><td><code>/api/blog/categories</code></td><td>blog.write</td><td><code>?slug=</code> + slug, name</td></tr>
+      <tr><td><span class="product_btn small">DELETE</span></td><td><code>/api/blog/categories</code></td><td>blog.write</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/tags</code></td><td>—</td><td>—</td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/tags</code></td><td>blog.write</td><td>slug, name</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/tag</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">PUT</span></td><td><code>/api/blog/tags</code></td><td>blog.write</td><td><code>?slug=</code> + slug, name</td></tr>
+      <tr><td><span class="product_btn small">DELETE</span></td><td><code>/api/blog/tags</code></td><td>blog.write</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/posts/category</code></td><td>blog.write</td><td><code>?slug=</code> + categoryId</td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/posts/tag</code></td><td>blog.write</td><td><code>?slug=</code> + tagId</td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/posts/tag/remove</code></td><td>blog.write</td><td><code>?slug=</code> + tagId</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/posts/by-category</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/posts/by-tag</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/posts/comments</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/blog/posts/comments</code></td><td>—</td><td><code>?slug=</code> + authorName, body, parentId</td></tr>
+      <tr><td><span class="product_btn small">DELETE</span></td><td><code>/api/blog/posts/comments</code></td><td>blog.write</td><td><code>?id=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/posts/search</code></td><td>—</td><td><code>?q=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/posts/revisions</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/blog/posts/revision</code></td><td>—</td><td><code>?id=</code></td></tr>
+    </tbody>
+  </table>
+  <pre style="margin-top:12px"><code># List posts
+curl http://localhost:8080/api/blog/posts?status=published
+
+# Response: 200
+{ "count": 3, "posts": [{ "id": 1, "slug": "hello-loong", "title": "Hello Loong", ... }] }
+
+# Create post (requires auth)
+curl -X POST http://localhost:8080/api/blog/posts \
+  -H "Cookie: loong_session=demo-admin" \
+  -d "title=New Post&body=Content&slug=new-post&status=draft"</code></pre>
+
+  <h3 style="margin-top:32px">Docs API</h3>
+  <table class="admin-table">
+    <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Params</th></tr></thead>
+    <tbody>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/health</code></td><td>—</td><td>—</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/</code></td><td>—</td><td>—</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/pages</code></td><td>—</td><td><code>?version=v1.0</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/page</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/docs/pages</code></td><td>docs.write</td><td>title, body, slug</td></tr>
+      <tr><td><span class="product_btn small">PUT</span></td><td><code>/api/docs/pages</code></td><td>docs.write</td><td><code>?slug=</code> + title, body, newSlug</td></tr>
+      <tr><td><span class="product_btn small">DELETE</span></td><td><code>/api/docs/pages</code></td><td>docs.write</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/pages/search</code></td><td>—</td><td><code>?q=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/pages/revisions</code></td><td>—</td><td><code>?slug=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/pages/revision</code></td><td>—</td><td><code>?id=</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/docs/pages/render</code></td><td>—</td><td>body</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/versions</code></td><td>—</td><td>—</td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/docs/versions</code></td><td>docs.write</td><td>name</td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/version</code></td><td>—</td><td><code>?name=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/nav</code></td><td>—</td><td><code>?version=</code></td></tr>
+      <tr><td><span class="product_btn small">POST</span></td><td><code>/api/docs/nav</code></td><td>docs.write</td><td>versionName, title, path</td></tr>
+      <tr><td><span class="product_btn small">PUT</span></td><td><code>/api/docs/nav</code></td><td>docs.write</td><code>?id=</code> + versionName, title, path</td></tr>
+      <tr><td><span class="product_btn small">DELETE</span></td><td><code>/api/docs/nav</code></td><td>docs.write</td><td><code>?id=</code></td></tr>
+      <tr><td><span class="product_btn small">GET</span></td><td><code>/api/docs/nav/tree</code></td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <pre style="margin-top:12px"><code># List doc pages
+curl http://localhost:8080/api/docs/pages?version=v1.0
+
+# Response: 200
+{ "count": 4, "pages": [{ "id": 1, "slug": "getting-started", "title": "Getting Started", ... }] }</code></pre>
+</div>
