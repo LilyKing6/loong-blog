@@ -1,0 +1,12 @@
+import std.{cli, core, diag, format, io, prim, sys} using;
+import std.core.{func, list, option, parallel} using;
+
+import blog.blog using;
+
+cli(
+  cliCmd("serve", serveBlog, "Serve blog"),
+  cliAppInfo(
+    "Loong Blog",
+    "Blog application built on the shared Loong web framework."
+  )
+)

@@ -1,0 +1,25 @@
+[package]
+name = "loong.blog"
+version = "0.1.0"
+edition = "2026"
+source_root = "src"
+
+[dependencies]
+std = { builtin = true }
+web = { path = "../loong-server/loong-web" }
+shared = { path = "../loong-server/loong-shared" }
+
+[targets.webdemo]
+type = "bin"
+root = "src/webdemo/main.lo"
+exports = ["webdemo.main"]
+
+[targets.blog]
+type = "bin"
+root = "src/blog/main.lo"
+exports = ["blog.main"]
+
+[targets.docs]
+type = "bin"
+root = "src/docs/main.lo"
+exports = ["docs.main"]

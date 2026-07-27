@@ -1,0 +1,522 @@
+import std.core.list using;
+import std.core.text using;
+import web.context using;
+import web.http using;
+import web.http_method using;
+import web.http_statuscode using;
+import web.server using;
+import web.routing using;
+import web.middleware using;
+import web.auth using;
+import web.errors using;
+import web.form using;
+import web.json using;
+import web.session using;
+import shared.content using;
+import docs.state using;
+
+// --- Utility ---
+
+fn bodyField(ctx: RouteContext, key: string) -> Option<string> {
+  ctx.body.parseFormFields().formValue(key)
+}
+
+fn queryField(ctx: RouteContext, key: string) -> Option<string> {
+  ctx.path.queryFields().formValue(key)
+}
+
+fn requestField(ctx: RouteContext, key: string) -> Option<string> {
+  ctx.bodyField(key) ?? ctx.queryField(key)
+}
+
+
+
+fn pageJson(p: DocPage) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(p.id)) ::
+    jsonField("slug", p.slug) ::
+    jsonField("title", p.title) ::
+    jsonField("body", p.body)
+  )
+}
+
+fn pagesJson(pages: List<DocPage>) -> JsonValue {
+  jsonArray(pages.map([](p: DocPage) pageJson(p)))
+}
+
+fn versionJson(v: DocVersion) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(v.id)) ::
+    jsonField("name", v.name)
+  )
+}
+
+fn versionsJson(versions: List<DocVersion>) -> JsonValue {
+  jsonArray(versions.map([](v: DocVersion) versionJson(v)))
+}
+
+fn navNodeJson(n: DocNavNode) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(n.id)) ::
+    jsonField("versionId", JsonValue(n.versionId)) ::
+    jsonField("title", n.title) ::
+    jsonField("path", n.path)
+  )
+}
+
+fn navNodesJson(nodes: List<DocNavNode>) -> JsonValue {
+  jsonArray(nodes.map([](n: DocNavNode) navNodeJson(n)))
+}
+
+fn revisionJson(r: DocRevision) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(r.id)) ::
+    jsonField("pageId", JsonValue(r.pageId)) ::
+    jsonField("body", r.body)
+  )
+}
+
+fn revisionsJson(revisions: List<DocRevision>) -> JsonValue {
+  jsonArray(revisions.map([](r: DocRevision) revisionJson(r)))
+}
+
+
+fn slugFromTitle(title: string) -> string {
+  title
+}
+
+// --- Health & Home ---
+
+fn docsHealth(ctx: RouteContext) -> HttpResp {
+  jsonOk(
+    jsonObject(
+      jsonField("status", "ok") ::
+      jsonField("service", "loong.docs")
+    )
+  )
+}
+
+fn docsHome(ctx: RouteContext) -> HttpResp {
+  (
+    versions = allVersions();
+    pages = allPages();
+    jsonOk(
+      jsonObject(
+        jsonField("title", "Loong Docs") ::
+        jsonField("versionCount", JsonValue(versions.length())) ::
+        jsonField("pageCount", JsonValue(pages.length())) ::
+        jsonField("versions", versionsJson(versions)) ::
+        jsonField("pages", pagesJson(pages))
+      )
+    )
+  )
+}
+
+// --- Page Routes ---
+
+fn pageListRoute(ctx: RouteContext) -> HttpResp {
+  (
+    versionName = ctx.queryField("version") ?? "";
+    pages = if (versionName.isEmpty()) {
+      allPages()
+    } else if (getVersionByName(versionName) as DocVersion v) {
+      listPagesByVersion(v.id)
+    } else {
+      allPages()
+    };
+    jsonOk(
+      jsonObject(
+        jsonField("count", JsonValue(pages.length())) ::
+        jsonField("pages", pages.pagesJson())
+      )
+    )
+  )
+}
+
+fn pageDetailRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.queryField("slug") ?? "";
+    if (getPageBySlug(slug) as DocPage p) {
+      jsonOk(p.pageJson())
+    } else {
+      notFoundResp("/api/docs/page?slug=" + slug)
+    }
+  )
+}
+
+fn pageCreateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("docs.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        title = ctx.requestField("title") ?? "Untitled Page";
+        body = ctx.requestField("body") ?? "";
+        slug = ctx.requestField("slug") ?? slugFromTitle(title);
+        (
+          newPage = DocPage(0, slug, title, body);
+          created = createPage(newPage);
+          jsonResp(
+            HttpStatusCode.Created,
+            jsonObject(
+              jsonField("status", "created") ::
+              jsonField("page", pageJson(created)) ::
+              jsonField("author", user.name)
+            )
+          )
+        )
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+
+fn pageUpdateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("docs.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.requestField("slug") ?? "";
+        if (getPageBySlug(slug) as DocPage existing) {
+          (
+            title = ctx.requestField("title") ?? existing.title;
+            body = ctx.requestField("body") ?? existing.body;
+            newSlug = ctx.requestField("newSlug") ?? slug;
+            rev = createRevision(0, existing.id, existing.body);
+            updated = DocPage(existing.id, newSlug, title, body);
+            updatePage(slug, updated);
+            jsonOk(
+              jsonObject(
+                jsonField("status", "updated") ::
+                jsonField("page", pageJson(updated)) ::
+                jsonField("updatedBy", user.name)
+              )
+            )
+          )
+        } else {
+          notFoundResp("/api/docs/pages?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+
+fn pageDeleteRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("docs.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.queryField("slug") ?? "";
+        if (deletePage(slug) as DocPage p) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "deleted") ::
+              jsonField("slug", p.slug) ::
+              jsonField("deletedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/docs/pages?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn pageSearchRoute(ctx: RouteContext) -> HttpResp {
+  (
+    q = ctx.queryField("q") ?? "";
+    if (q.isEmpty()) {
+      badRequestResp("Search query 'q' is required")
+    } else {
+      results = searchPages(q);
+      jsonOk(
+        jsonObject(
+          jsonField("query", q) ::
+          jsonField("count", JsonValue(results.length())) ::
+          jsonField("pages", results.pagesJson())
+        )
+      )
+    }
+  )
+}
+
+// --- Version Routes ---
+
+fn versionListRoute(ctx: RouteContext) -> HttpResp {
+  (
+    versions = allVersions();
+    jsonOk(
+      jsonObject(
+        jsonField("count", JsonValue(versions.length())) ::
+        jsonField("versions", versions.versionsJson())
+      )
+    )
+  )
+}
+
+fn versionCreateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("docs.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        name = ctx.requestField("name") ?? "";
+        if (name.isEmpty()) {
+          badRequestResp("Version name is required")
+        } else {
+          (
+            created = createVersion(name);
+            jsonResp(
+              HttpStatusCode.Created,
+              jsonObject(
+                jsonField("status", "created") ::
+                jsonField("version", created.versionJson()) ::
+                jsonField("createdBy", user.name)
+              )
+            )
+          )
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn versionDetailRoute(ctx: RouteContext) -> HttpResp {
+  (
+    name = ctx.queryField("name") ?? "";
+    if (getVersionByName(name) as DocVersion v) {
+      nodes = listNavNodes(v.id);
+      pages = listPagesByVersion(v.id);
+      jsonOk(
+        jsonObject(
+          jsonField("version", v.versionJson()) ::
+          jsonField("navNodes", nodes.navNodesJson()) ::
+          jsonField("pageCount", JsonValue(pages.length())) ::
+          jsonField("pages", pages.pagesJson())
+        )
+      )
+    } else {
+      notFoundResp("/api/docs/version?name=" + name)
+    }
+  )
+}
+
+// --- Navigation Routes ---
+
+fn navListRoute(ctx: RouteContext) -> HttpResp {
+  (
+    versionName = ctx.queryField("version") ?? "";
+    nodes = if (versionName.isEmpty()) {
+      initDocsState().navNodes
+    } else if (getVersionByName(versionName) as DocVersion v) {
+      listNavNodes(v.id)
+    } else {
+      List<DocNavNode>()
+    };
+    jsonOk(
+      jsonObject(
+        jsonField("count", JsonValue(nodes.length())) ::
+        jsonField("navNodes", nodes.navNodesJson())
+      )
+    )
+  )
+}
+
+fn navCreateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("docs.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        versionName = ctx.requestField("versionName") ?? "";
+        title = ctx.requestField("title") ?? "";
+        path = ctx.requestField("path") ?? "";
+        if (getVersionByName(versionName) as DocVersion v) {
+          (
+            created = createNavNode(DocNavNode(0, v.id, title, path));
+            jsonResp(
+              HttpStatusCode.Created,
+              jsonObject(
+                jsonField("status", "created") ::
+                jsonField("navNode", created.navNodeJson()) ::
+                jsonField("createdBy", user.name)
+              )
+            )
+          )
+        } else {
+          notFoundResp("/api/docs/version?name=" + versionName)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn navUpdateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("docs.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        idStr = ctx.requestField("id") ?? "";
+        id = txtIntParser()(idStr) ?? 0;
+        versionName = ctx.requestField("versionName") ?? "";
+        title = ctx.requestField("title") ?? "";
+        path = ctx.requestField("path") ?? "";
+        if (getVersionByName(versionName) as DocVersion v) {
+          (
+            updated = DocNavNode(id, v.id, title, path);
+            if (updateNavNode(id, updated) as DocNavNode node) {
+              jsonOk(
+                jsonObject(
+                  jsonField("status", "updated") ::
+                  jsonField("navNode", node.navNodeJson()) ::
+                  jsonField("updatedBy", user.name)
+                )
+              )
+            } else {
+              notFoundResp("/api/docs/nav?id=" + idStr)
+            }
+          )
+        } else {
+          notFoundResp("/api/docs/version?name=" + versionName)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn navDeleteRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("docs.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        idStr = ctx.queryField("id") ?? "";
+        id = txtIntParser()(idStr) ?? 0;
+        if (deleteNavNode(id) as DocNavNode node) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "deleted") ::
+              jsonField("navNode", node.navNodeJson()) ::
+              jsonField("deletedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/docs/nav?id=" + idStr)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn navTreeRoute(ctx: RouteContext) -> HttpResp {
+  navListRoute(ctx)
+}
+
+// --- Revision Routes ---
+
+fn pageRevisionsRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.queryField("slug") ?? "";
+    if (getPageBySlug(slug) as DocPage p) {
+      revisions = listRevisions(p.id);
+      jsonOk(
+        jsonObject(
+          jsonField("pageSlug", slug) ::
+          jsonField("count", JsonValue(revisions.length())) ::
+          jsonField("revisions", revisions.revisionsJson())
+        )
+      )
+    } else {
+      notFoundResp("/api/docs/pages/revisions?slug=" + slug)
+    }
+  )
+}
+
+fn pageRevisionRoute(ctx: RouteContext) -> HttpResp {
+  (
+    idStr = ctx.queryField("id") ?? "";
+    id = txtIntParser()(idStr) ?? 0;
+    if (getRevision(id) as DocRevision rev) {
+      jsonOk(
+        jsonObject(
+          jsonField("id", JsonValue(rev.id)) ::
+          jsonField("pageId", JsonValue(rev.pageId)) ::
+          jsonField("body", rev.body)
+        )
+      )
+    } else {
+      notFoundResp("/api/docs/pages/revision?id=" + idStr)
+    }
+  )
+}
+
+// --- Markdown Render ---
+
+fn pageRenderRoute(ctx: RouteContext) -> HttpResp {
+  (
+    body = ctx.requestField("body") ?? "";
+    jsonOk(
+      jsonObject(
+        (jsonField("html", body)) :: List<Tuple<string, JsonValue>>()
+      )
+    )
+  )
+}
+
+// --- Routes ---
+
+fn docsRoutes() -> List<HttpRoute> {
+  routeGroup(
+    "/api/docs",
+    HttpRoute(HttpMethod.Get, "/health", [](ctx: RouteContext) -> HttpResp { docsHealth(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/", [](ctx: RouteContext) -> HttpResp { docsHome(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages", [](ctx: RouteContext) -> HttpResp { pageListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/page", [](ctx: RouteContext) -> HttpResp { pageDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/pages", [](ctx: RouteContext) -> HttpResp { pageCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/pages", [](ctx: RouteContext) -> HttpResp { pageUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Patch, "/pages", [](ctx: RouteContext) -> HttpResp { pageUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/pages", [](ctx: RouteContext) -> HttpResp { pageDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages/search", [](ctx: RouteContext) -> HttpResp { pageSearchRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages/revisions", [](ctx: RouteContext) -> HttpResp { pageRevisionsRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages/revision", [](ctx: RouteContext) -> HttpResp { pageRevisionRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/pages/render", [](ctx: RouteContext) -> HttpResp { pageRenderRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/versions", [](ctx: RouteContext) -> HttpResp { versionListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/versions", [](ctx: RouteContext) -> HttpResp { versionCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/version", [](ctx: RouteContext) -> HttpResp { versionDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/nav", [](ctx: RouteContext) -> HttpResp { navListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/nav", [](ctx: RouteContext) -> HttpResp { navCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/nav", [](ctx: RouteContext) -> HttpResp { navUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/nav", [](ctx: RouteContext) -> HttpResp { navDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/nav/tree", [](ctx: RouteContext) -> HttpResp { navTreeRoute(ctx) })
+  )
+}
+
+impure fn serveDocs(s: ServerSettings) -> Option<Error> {
+  serveWithRoutes(s, docsRoutes())
+}

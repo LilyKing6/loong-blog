@@ -1,0 +1,12 @@
+import std.{cli, core, diag, format, io, prim, sys} using;
+import std.core.{func, list, option, parallel} using;
+
+import docs.docs using;
+
+cli(
+  cliCmd("serve", serveDocs, "Serve docs"),
+  cliAppInfo(
+    "Loong Docs",
+    "Documentation site built on the shared Loong web framework."
+  )
+)

@@ -1,0 +1,769 @@
+import std.core.list using;
+import std.core.text using;
+import web.context using;
+import web.http using;
+import web.http_method using;
+import web.http_statuscode using;
+import web.server using;
+import web.routing using;
+import web.middleware using;
+import web.auth using;
+import web.errors using;
+import web.form using;
+import web.json using;
+import web.session using;
+import shared.content using;
+import blog.state using;
+
+fn postJson(post: Post) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(post.id)) ::
+    jsonField("slug", post.slug) ::
+    jsonField("title", post.title) ::
+    jsonField("body", post.body) ::
+    jsonField("status", post.status) ::
+    jsonField("publishedAt", post.publishedAt) ::
+    jsonField("categoryId", JsonValue(post.categoryId)) ::
+    jsonField("tagIds", jsonArray(post.tagIds.map([](tid: int) JsonValue(tid))))
+  )
+}
+
+fn postsJson(posts: List<Post>) -> JsonValue {
+  jsonArray(posts.map([](post: Post) post.postJson()))
+}
+
+fn categoryJson(cat: Category) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(cat.id)) ::
+    jsonField("slug", cat.slug) ::
+    jsonField("name", cat.name)
+  )
+}
+
+fn categoriesJson(cats: List<Category>) -> JsonValue {
+  jsonArray(cats.map([](cat: Category) cat.categoryJson()))
+}
+
+fn tagJson(tag: Tag) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(tag.id)) ::
+    jsonField("slug", tag.slug) ::
+    jsonField("name", tag.name)
+  )
+}
+
+fn tagsJson(tags: List<Tag>) -> JsonValue {
+  jsonArray(tags.map([](tag: Tag) tag.tagJson()))
+}
+
+fn bodyField(ctx: RouteContext, key: string) -> Option<string> {
+  ctx.body.parseFormFields().formValue(key)
+}
+
+fn queryField(ctx: RouteContext, key: string) -> Option<string> {
+  ctx.path.queryFields().formValue(key)
+}
+
+fn requestField(ctx: RouteContext, key: string) -> Option<string> {
+  ctx.bodyField(key) ?? ctx.queryField(key)
+}
+
+fn requestedSlug(ctx: RouteContext) -> string {
+  ctx.requestField("slug") ?? "hello-loong"
+}
+
+fn slugFromTitle(title: string) -> string {
+  title.trim().replace(" ", "-")
+}
+
+fn isPostStatus(status: string) -> bool {
+  status == "draft" || status == "published" || status == "archived"
+}
+
+fn normalizePostStatus(status: string) -> string {
+  if (status.trim().isEmpty()) { "draft" } else { status.trim() }
+}
+
+fn publishedAtForStatus(status: string) -> string {
+  if (status == "published") { "demo-now" } else { "" }
+}
+
+fn postWithStatus(post: Post, status: string) -> Post {
+  Post(post.id, post.slug, post.title, post.body, status, status.publishedAtForStatus(), post.categoryId, post.tagIds)
+}
+
+fn postListRoute(ctx: RouteContext) -> HttpResp {
+  (
+    status = ctx.requestField("status") ?? "all";
+    posts = listPostsByStatus(status);
+    jsonOk(
+      jsonObject(
+        jsonField("title", "Loong Blog") ::
+        jsonField("status", status) ::
+        jsonField("count", JsonValue(posts.length())) ::
+        jsonField("posts", posts.postsJson())
+      )
+    )
+  )
+}
+
+fn postDetailRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.requestedSlug();
+    if (getPostBySlug(slug) as Post post) {
+      jsonOk(post.postJson())
+    } else {
+      notFoundResp("/api/blog/post?slug=" + slug)
+    }
+  )
+}
+
+fn postCreateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        title = ctx.requestField("title") ?? "Untitled Post";
+        body = ctx.requestField("body") ?? ctx.body;
+        slug = ctx.requestField("slug") ?? title.slugFromTitle();
+        status = (ctx.requestField("status") ?? "draft").normalizePostStatus();
+        categoryIdStr = ctx.requestField("categoryId") ?? "0";
+        categoryId = txtIntParser()(categoryIdStr) ?? 0;
+        tagIdsStr = ctx.requestField("tagIds") ?? "";
+        tagIds = if (tagIdsStr.isEmpty()) {
+          List<int>()
+        } else {
+          tagIdsStr.split(equals<char>[',']).filter([](s: string) -> bool { !s.trim().isEmpty() }).map([](s: string) -> int { txtIntParser()(s.trim()) ?? 0 })
+        };
+        if (!status.isPostStatus()) {
+          badRequestResp("Invalid post status: " + status)
+        } else {
+          (
+            newPost = Post(0, slug, title, body, status, status.publishedAtForStatus(), categoryId, tagIds);
+            created = createPost(newPost);
+            jsonResp(
+              HttpStatusCode.Created,
+              jsonObject(
+                jsonField("status", "created") ::
+                jsonField("post", created.postJson()) ::
+                jsonField("author", user.name)
+              )
+            )
+          )
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postUpdateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.requestedSlug();
+        if (getPostBySlug(slug) as Post existing) {
+          (
+            title = ctx.requestField("title") ?? existing.title;
+            body = ctx.requestField("body") ?? existing.body;
+            newSlug = ctx.requestField("newSlug") ?? slug;
+            status = (ctx.requestField("status") ?? existing.status).normalizePostStatus();
+            if (!status.isPostStatus()) {
+              badRequestResp("Invalid post status: " + status)
+            } else {
+              (
+                rev = createRevision(0, existing.id, existing.body);
+                updated = Post(existing.id, newSlug, title, body, status, status.publishedAtForStatus(), existing.categoryId, existing.tagIds);
+                updatePost(slug, updated);
+                jsonOk(
+                  jsonObject(
+                    jsonField("status", "updated") ::
+                    jsonField("post", updated.postJson()) ::
+                    jsonField("updatedBy", user.name)
+                  )
+                )
+              )
+            }
+          )
+        } else {
+          notFoundResp("/api/blog/posts?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postStatusRoute(ctx: RouteContext, nextStatus: string) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.requestedSlug();
+        if (getPostBySlug(slug) as Post existing) {
+          (
+            updated = existing.postWithStatus(nextStatus);
+            updatePost(slug, updated);
+            jsonOk(
+              jsonObject(
+                jsonField("status", nextStatus) ::
+                jsonField("post", updated.postJson()) ::
+                jsonField("updatedBy", user.name)
+              )
+            )
+          )
+        } else {
+          notFoundResp("/api/blog/posts?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postDeleteRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.requestedSlug();
+        if (deletePost(slug) as Post post) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "deleted") ::
+              jsonField("slug", post.slug) ::
+              jsonField("deletedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/blog/posts?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postSetCategoryRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      slug = ctx.queryField("slug") ?? "";
+      categoryId = ctx.requestField("categoryId") ?? "";
+      if (getPostBySlug(slug) as Post existing) {
+        cid = txtIntParser()(categoryId) ?? existing.categoryId;
+        updated = Post(existing.id, existing.slug, existing.title, existing.body, existing.status, existing.publishedAt, cid, existing.tagIds);
+        updatePost(slug, updated);
+        jsonOk(
+          jsonObject(
+            jsonField("status", "category-updated") ::
+            jsonField("post", updated.postJson()) ::
+            jsonField("updatedBy", user.name)
+          )
+        )
+      } else {
+        notFoundResp("/api/blog/posts?slug=" + slug)
+      }
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postAddTagRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      slug = ctx.queryField("slug") ?? "";
+      tagId = ctx.requestField("tagId") ?? "";
+      if (getPostBySlug(slug) as Post existing) {
+        tid = txtIntParser()(tagId) ?? 0;
+        newTagIds = existing.tagIds :: tid;
+        updated = Post(existing.id, existing.slug, existing.title, existing.body, existing.status, existing.publishedAt, existing.categoryId, newTagIds);
+        updatePost(slug, updated);
+        jsonOk(
+          jsonObject(
+            jsonField("status", "tag-added") ::
+            jsonField("post", updated.postJson()) ::
+            jsonField("updatedBy", user.name)
+          )
+        )
+      } else {
+        notFoundResp("/api/blog/posts?slug=" + slug)
+      }
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postRemoveTagRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      slug = ctx.queryField("slug") ?? "";
+      tagId = ctx.requestField("tagId") ?? "";
+      if (getPostBySlug(slug) as Post existing) {
+        tid = txtIntParser()(tagId) ?? 0;
+        newTagIds = existing.tagIds.filter([tid] (t: int) -> bool { t != tid });
+        updated = Post(existing.id, existing.slug, existing.title, existing.body, existing.status, existing.publishedAt, existing.categoryId, newTagIds);
+        updatePost(slug, updated);
+        jsonOk(
+          jsonObject(
+            jsonField("status", "tag-removed") ::
+            jsonField("post", updated.postJson()) ::
+            jsonField("updatedBy", user.name)
+          )
+        )
+      } else {
+        notFoundResp("/api/blog/posts?slug=" + slug)
+      }
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postsByCategoryRoute(ctx: RouteContext) -> HttpResp {
+  categorySlug = ctx.queryField("slug") ?? "";
+  if (getCategoryBySlug(categorySlug) as Category cat) {
+    filtered = listPostsByStatus("all").filter([cat] (post: Post) -> bool { post.categoryId == cat.id });
+    jsonOk(
+      jsonObject(
+        jsonField("category", cat.categoryJson()) ::
+        jsonField("count", JsonValue(filtered.length())) ::
+        jsonField("posts", filtered.postsJson())
+      )
+    )
+  } else {
+    notFoundResp("/api/blog/posts/by-category?slug=" + categorySlug)
+  }
+}
+
+fn postsByTagRoute(ctx: RouteContext) -> HttpResp {
+  tagSlug = ctx.queryField("slug") ?? "";
+  if (getTagBySlug(tagSlug) as Tag tag) {
+    filtered = listPostsByStatus("all").filter([tag] (post: Post) -> bool { post.tagIds.contains(tag.id) });
+    jsonOk(
+      jsonObject(
+        jsonField("tag", tag.tagJson()) ::
+        jsonField("count", JsonValue(filtered.length())) ::
+        jsonField("posts", filtered.postsJson())
+      )
+    )
+  } else {
+    notFoundResp("/api/blog/posts/by-tag?slug=" + tagSlug)
+  }
+}
+
+fn blogHealth(ctx: RouteContext) -> HttpResp {
+  jsonOk(
+    jsonObject(
+      jsonField("status", "ok") ::
+      jsonField("service", "loong.blog")
+    )
+  )
+}
+
+fn blogHome(ctx: RouteContext) -> HttpResp {
+  postListRoute(ctx)
+}
+
+fn postCommentsRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.queryField("slug") ?? "";
+    if (getPostBySlug(slug) as Post post) {
+      comments = getCommentsForPost(post.id);
+      jsonOk(
+        jsonObject(
+          jsonField("postSlug", slug) ::
+          jsonField("count", JsonValue(comments.length())) ::
+          jsonField("comments", comments.commentsJson())
+        )
+      )
+    } else {
+      notFoundResp("/api/blog/posts/comments?slug=" + slug)
+    }
+  )
+}
+
+fn commentCreateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.queryField("slug") ?? "";
+    authorName = ctx.requestField("authorName") ?? "Anonymous";
+    body = ctx.requestField("body") ?? "";
+    parentIdStr = ctx.requestField("parentId") ?? "0";
+    parentId = txtIntParser()(parentIdStr) ?? 0;
+    post = getPostBySlug(slug);
+    if (post as Post p) {
+      c = createComment(p.id, authorName, body, parentId, "published");
+      jsonResp(
+        HttpStatusCode.Created,
+        jsonObject(
+          jsonField("status", "created") ::
+          jsonField("comment", c.commentJson())
+        )
+      )
+    } else {
+      notFoundResp("/api/blog/posts/comments?slug=" + slug)
+    }
+  )
+}
+
+fn commentDeleteRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        idStr = ctx.queryField("id") ?? "";
+        id = txtIntParser()(idStr) ?? 0;
+        if (deleteComment(id) as Comment c) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "deleted") ::
+              jsonField("commentId", JsonValue(id)) ::
+              jsonField("deletedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/blog/posts/comments?id=" + idStr)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn postSearchRoute(ctx: RouteContext) -> HttpResp {
+  (
+    q = ctx.queryField("q") ?? "";
+    if (q.isEmpty()) {
+      badRequestResp("Search query 'q' is required")
+    } else {
+      results = allPosts().filter([q] (post: Post) -> bool {
+        post.title.contains(q) || post.body.contains(q)
+      });
+      jsonOk(
+        jsonObject(
+          jsonField("query", q) ::
+          jsonField("count", JsonValue(results.length())) ::
+          jsonField("posts", results.postsJson())
+        )
+      )
+    }
+  )
+}
+
+fn postRevisionsRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.queryField("slug") ?? "";
+    if (getPostBySlug(slug) as Post p) {
+      revisions = listRevisions(p.id);
+      jsonOk(
+        jsonObject(
+          jsonField("postSlug", slug) ::
+          jsonField("count", JsonValue(revisions.length())) ::
+          jsonField("revisions", revisions.revisionsJson())
+        )
+      )
+    } else {
+      notFoundResp("/api/blog/posts/revisions?slug=" + slug)
+    }
+  )
+}
+
+fn postRevisionRoute(ctx: RouteContext) -> HttpResp {
+  (
+    idStr = ctx.queryField("id") ?? "";
+    id = txtIntParser()(idStr) ?? 0;
+    if (getRevision(id) as PostRevision rev) {
+      jsonOk(
+        jsonObject(
+          jsonField("id", JsonValue(rev.id)) ::
+          jsonField("postId", JsonValue(rev.postId)) ::
+          jsonField("body", rev.body)
+        )
+      )
+    } else {
+      notFoundResp("/api/blog/posts/revision?id=" + idStr)
+    }
+  )
+}
+
+fn categoryListRoute(ctx: RouteContext) -> HttpResp {
+  (
+    cats = listCategories();
+    jsonOk(
+      jsonObject(
+        jsonField("count", JsonValue(cats.length())) ::
+        jsonField("categories", cats.categoriesJson())
+      )
+    )
+  )
+}
+
+fn categoryDetailRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.queryField("slug") ?? "";
+    if (getCategoryBySlug(slug) as Category cat) {
+      jsonOk(cat.categoryJson())
+    } else {
+      notFoundResp("/api/blog/category?slug=" + slug)
+    }
+  )
+}
+
+fn categoryCreateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.requestField("slug") ?? "";
+        name = ctx.requestField("name") ?? slug;
+        if (slug.isEmpty()) {
+          badRequestResp("Category slug is required")
+        } else {
+          (
+            created = createCategory(slug, name);
+            jsonResp(
+              HttpStatusCode.Created,
+              jsonObject(
+                jsonField("status", "created") ::
+                jsonField("category", created.categoryJson()) ::
+                jsonField("createdBy", user.name)
+              )
+            )
+          )
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn categoryUpdateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.queryField("slug") ?? "";
+        newSlug = ctx.requestField("newSlug") ?? slug;
+        name = ctx.requestField("name") ?? "";
+        if (updateCategory(slug, newSlug, name) as Category cat) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "updated") ::
+              jsonField("category", cat.categoryJson()) ::
+              jsonField("updatedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/blog/categories?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn categoryDeleteRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.queryField("slug") ?? "";
+        if (deleteCategory(slug) as Category cat) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "deleted") ::
+              jsonField("category", cat.categoryJson()) ::
+              jsonField("deletedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/blog/categories?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn tagListRoute(ctx: RouteContext) -> HttpResp {
+  (
+    tags = listTags();
+    jsonOk(
+      jsonObject(
+        jsonField("count", JsonValue(tags.length())) ::
+        jsonField("tags", tags.tagsJson())
+      )
+    )
+  )
+}
+
+fn tagDetailRoute(ctx: RouteContext) -> HttpResp {
+  (
+    slug = ctx.queryField("slug") ?? "";
+    if (getTagBySlug(slug) as Tag tag) {
+      jsonOk(tag.tagJson())
+    } else {
+      notFoundResp("/api/blog/tag?slug=" + slug)
+    }
+  )
+}
+
+fn tagCreateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.requestField("slug") ?? "";
+        name = ctx.requestField("name") ?? slug;
+        if (slug.isEmpty()) {
+          badRequestResp("Tag slug is required")
+        } else {
+          (
+            created = createTag(slug, name);
+            jsonResp(
+              HttpStatusCode.Created,
+              jsonObject(
+                jsonField("status", "created") ::
+                jsonField("tag", created.tagJson()) ::
+                jsonField("createdBy", user.name)
+              )
+            )
+          )
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn tagUpdateRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.queryField("slug") ?? "";
+        newSlug = ctx.requestField("newSlug") ?? slug;
+        name = ctx.requestField("name") ?? "";
+        if (updateTag(slug, newSlug, name) as Tag tag) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "updated") ::
+              jsonField("tag", tag.tagJson()) ::
+              jsonField("updatedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/blog/tags?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn tagDeleteRoute(ctx: RouteContext) -> HttpResp {
+  (
+    auth = ctx.requirePermission("blog.write");
+    if (auth as HttpResp resp) {
+      resp
+    } else if (auth as SessionUser user) {
+      (
+        slug = ctx.queryField("slug") ?? "";
+        if (deleteTag(slug) as Tag tag) {
+          jsonOk(
+            jsonObject(
+              jsonField("status", "deleted") ::
+              jsonField("tag", tag.tagJson()) ::
+              jsonField("deletedBy", user.name)
+            )
+          )
+        } else {
+          notFoundResp("/api/blog/tags?slug=" + slug)
+        }
+      )
+    } else {
+      unauthorizedResp("Authentication required")
+    }
+  )
+}
+
+fn blogRoutes() -> List<HttpRoute> {
+  routeGroup(
+    "/api/blog",
+    HttpRoute(HttpMethod.Get, "/health", [](ctx: RouteContext) -> HttpResp { blogHealth(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts",  [](ctx: RouteContext) -> HttpResp { postListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/post",  [](ctx: RouteContext) -> HttpResp { postDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts",  [](ctx: RouteContext) -> HttpResp { postCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/posts",  [](ctx: RouteContext) -> HttpResp { postUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Patch, "/posts",  [](ctx: RouteContext) -> HttpResp { postUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/publish",  [](ctx: RouteContext) -> HttpResp { postStatusRoute(ctx, "published") }) ::
+    HttpRoute(HttpMethod.Post, "/posts/draft",  [](ctx: RouteContext) -> HttpResp { postStatusRoute(ctx, "draft") }) ::
+    HttpRoute(HttpMethod.Delete, "/posts",  [](ctx: RouteContext) -> HttpResp { postDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/category",  [](ctx: RouteContext) -> HttpResp { categoryDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/tags",  [](ctx: RouteContext) -> HttpResp { tagListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/tags",  [](ctx: RouteContext) -> HttpResp { tagCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/tag",  [](ctx: RouteContext) -> HttpResp { tagDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/tags",  [](ctx: RouteContext) -> HttpResp { tagUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/tags",  [](ctx: RouteContext) -> HttpResp { tagDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/category",  [](ctx: RouteContext) -> HttpResp { postSetCategoryRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/tag",  [](ctx: RouteContext) -> HttpResp { postAddTagRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/tag/remove",  [](ctx: RouteContext) -> HttpResp { postRemoveTagRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/by-category",  [](ctx: RouteContext) -> HttpResp { postsByCategoryRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/by-tag",  [](ctx: RouteContext) -> HttpResp { postsByTagRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/comments",  [](ctx: RouteContext) -> HttpResp { postCommentsRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/comments",  [](ctx: RouteContext) -> HttpResp { commentCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/posts/comments",  [](ctx: RouteContext) -> HttpResp { commentDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/search",  [](ctx: RouteContext) -> HttpResp { postSearchRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/revisions",  [](ctx: RouteContext) -> HttpResp { postRevisionsRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/revision",  [](ctx: RouteContext) -> HttpResp { postRevisionRoute(ctx) })
+  )
+}
+
+impure fn serveBlog(s: ServerSettings) -> Option<Error> {
+  serveWithRoutes(s, blogRoutes())
+}

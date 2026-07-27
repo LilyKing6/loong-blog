@@ -1,0 +1,13 @@
+import std.{cli, core, diag, format, io, prim, sys} using;
+import std.core.{func, list, option, parallel} using;
+
+import web.server using;
+
+cli(
+  cliCmd("serve", serve, "Serve webpages"),
+  cliAppInfo(
+    "Loong WebServer",
+    "Example of a very basic http webserver writen in Loong.\n" +
+    "Demo: https://www.bastian.tech/loong-webserver"
+  )
+)

@@ -1,0 +1,130 @@
+import std.core.list using;
+import std.core.option using;
+import web.json using;
+import shared.content using;
+
+struct DocsState {
+  pages: List<DocPage>,
+  versions: List<DocVersion>,
+  navNodes: List<DocNavNode>,
+  revisions: List<DocRevision>,
+  nextPageId: int,
+  nextVersionId: int,
+  nextNavNodeId: int,
+  nextRevisionId: int
+}
+
+fn initDocsState() -> DocsState {
+  DocsState(
+    DocPage(1, "getting-started", "Getting Started", "# Getting Started\n\nWelcome to Loong! This guide will help you get up and running.\n\n## Prerequisites\n\n- Loong compiler `loc` installed\n- A text editor\n\n## Hello World\n\nCreate a file `hello.lo`:\n\n```\ncli(\n  cliCmd(\"greet\", []() { io.println(\"Hello, Loong!\"); nil }, \"Say hi\")\n)\n```\n\n## Next Steps\n\nRead the language spec and explore the standard library.") ::
+    DocPage(2, "installation", "Installation", "# Installation\n\n## Download\n\nDownload the latest Loong release from the official site.\n\n## Build from Source\n\n```bash\ngit clone https://github.com/loong/loong.git\ncd loong\nmkdir build && cd build\ncmake ..\nmake -j$(nproc)\n```\n\n## Verify\n\n```bash\nloc --version\n```\n\nExpected output: `Loong compiler [2.0.1]`") ::
+    DocPage(3, "language-basics", "Language Basics", "# Language Basics\n\n## Values and Types\n\nLoong has the following primitive types:\n- `int`, `long`, `float`\n- `char`, `string`\n- `bool`\n\n## Variables\n\n```\nx = 42;\ny = \"hello\";\n```\n\n## Functions\n\n```\nfn add(a: int, b: int) -> int {\n  a + b\n}\n```\n\n## Lists\n\n```\nnumbers = int[]{1, 2, 3};\nnames = \"Alice\" :: \"Bob\" :: List<string>();\n```"),
+    List<DocVersion>(
+      DocVersion(1, "v1.0")
+    ),
+    DocNavNode(1, 1, "Getting Started", "getting-started") ::
+    DocNavNode(2, 1, "Installation", "installation") ::
+    DocNavNode(3, 1, "Language Basics", "language-basics") :: List<DocNavNode>(),
+    List<DocRevision>(),
+    4,
+    2,
+    4,
+    1
+  )
+}
+
+fn allPages() -> List<DocPage> {
+  initDocsState().pages
+}
+
+fn getPageBySlug(slug: string) -> Option<DocPage> {
+  allPages().first([slug] (p: DocPage) -> bool { p.slug == slug })
+}
+
+fn listPagesByVersion(versionId: int) -> List<DocPage> {
+  nodes = initDocsState().navNodes.filter([versionId] (n: DocNavNode) -> bool { n.versionId == versionId });
+  allPages().filter([nodes] (p: DocPage) -> bool {
+    nodes.any([p] (n: DocNavNode) -> bool { n.path == p.slug })
+  })
+}
+
+fn searchPages(q: string) -> List<DocPage> {
+  allPages().filter([q] (p: DocPage) -> bool {
+    p.title.contains(q) || p.body.contains(q)
+  })
+}
+
+fn createPage(page: DocPage) -> DocPage {
+  nextId = initDocsState().nextPageId;
+  DocPage(nextId, page.slug, page.title, page.body)
+}
+
+fn updatePage(slug: string, page: DocPage) -> Option<DocPage> {
+  getPageBySlug(slug)
+}
+
+fn deletePage(slug: string) -> Option<DocPage> {
+  getPageBySlug(slug)
+}
+
+fn allVersions() -> List<DocVersion> {
+  initDocsState().versions
+}
+
+fn getVersionByName(name: string) -> Option<DocVersion> {
+  allVersions().first([name] (v: DocVersion) -> bool { v.name == name })
+}
+
+fn createVersion(name: string) -> DocVersion {
+  nextId = initDocsState().nextVersionId;
+  DocVersion(nextId, name)
+}
+
+fn listNavNodes(versionId: int) -> List<DocNavNode> {
+  initDocsState().navNodes.filter([versionId] (n: DocNavNode) -> bool { n.versionId == versionId })
+}
+
+fn getNavNode(id: int) -> Option<DocNavNode> {
+  initDocsState().navNodes.first([id] (n: DocNavNode) -> bool { n.id == id })
+}
+
+fn createNavNode(node: DocNavNode) -> DocNavNode {
+  nextId = initDocsState().nextNavNodeId;
+  DocNavNode(nextId, node.versionId, node.title, node.path)
+}
+
+fn updateNavNode(id: int, node: DocNavNode) -> Option<DocNavNode> {
+  if (getNavNode(id) as DocNavNode existing) {
+    Option(DocNavNode(existing.id, node.versionId, node.title, node.path))
+  } else {
+    None()
+  }
+}
+
+fn deleteNavNode(id: int) -> Option<DocNavNode> {
+  getNavNode(id)
+}
+
+fn createRevision(nextId: int, pageId: int, body: string) -> DocRevision {
+  DocRevision(nextId, pageId, body)
+}
+
+fn listRevisions(pageId: int) -> List<DocRevision> {
+  List<DocRevision>()
+}
+
+fn getRevision(id: int) -> Option<DocRevision> {
+  None()
+}
+
+fn revisionJson(r: DocRevision) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(r.id)) ::
+    jsonField("pageId", JsonValue(r.pageId)) ::
+    jsonField("body", r.body)
+  )
+}
+
+fn revisionsJson(revisions: List<DocRevision>) -> JsonValue {
+  jsonArray(revisions.map([](r: DocRevision) revisionJson(r)))
+}

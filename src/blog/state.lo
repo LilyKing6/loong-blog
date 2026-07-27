@@ -1,0 +1,177 @@
+import std.core.list using;
+import std.core.option using;
+import web.json using;
+import shared.content using;
+
+struct BlogState {
+  posts: List<Post>,
+  categories: List<Category>,
+  tags: List<Tag>,
+  comments: List<Comment>,
+  nextPostId: int,
+  nextCategoryId: int,
+  nextTagId: int,
+  nextCommentId: int
+}
+
+fn initBlogState() -> BlogState {
+  BlogState(
+    Post(1, "hello-loong", "Hello Loong", "First Loong blog post served by the shared web framework.", "published", "2026-05-05T00:00:00Z", 1, List<int>()) ::
+    Post(2, "framework-notes", "Framework Notes", "Router, middleware, JSON, auth and body handling are now shared modules.", "draft", "", 2, List<int>()),
+    Category(1, "tech", "Technology") ::
+    Category(2, "life", "Lifestyle"),
+    Tag(1, "loong", "Loong") ::
+    Tag(2, "web", "Web Framework") ::
+    Tag(3, "tutorial", "Tutorial"),
+    List<Comment>(),
+    3,
+    3,
+    4,
+    1
+  )
+}
+
+fn allPosts() -> List<Post> {
+  Post(1, "hello-loong", "Hello Loong", "First Loong blog post served by the shared web framework.", "published", "2026-05-05T00:00:00Z", 1, List<int>()) ::
+  Post(2, "framework-notes", "Framework Notes", "Router, middleware, JSON, auth and body handling are now shared modules.", "draft", "", 2, List<int>())
+}
+
+fn allCategories() -> List<Category> {
+  Category(1, "tech", "Technology") ::
+  Category(2, "life", "Lifestyle")
+}
+
+fn allTags() -> List<Tag> {
+  Tag(1, "loong", "Loong") ::
+  Tag(2, "web", "Web Framework") ::
+  Tag(3, "tutorial", "Tutorial")
+}
+
+fn listPostsByStatus(status: string) -> List<Post> {
+  allPosts().filter([status] (post: Post) -> bool { post.status == status })
+}
+
+fn getPostBySlug(slug: string) -> Option<Post> {
+  allPosts().first([slug] (post: Post) -> bool { post.slug == slug })
+}
+
+fn createPost(post: Post) -> Post {
+  Post(3, post.slug, post.title, post.body, post.status, post.publishedAt, 0, List<int>())
+}
+
+fn updatePost(slug: string, post: Post) -> Option<Post> {
+  getPostBySlug(slug)
+}
+
+fn deletePost(slug: string) -> Option<Post> {
+  getPostBySlug(slug)
+}
+
+fn listCategories() -> List<Category> {
+  allCategories()
+}
+
+fn getCategoryBySlug(slug: string) -> Option<Category> {
+  allCategories().first([slug] (cat: Category) -> bool { cat.slug == slug })
+}
+
+fn createCategory(slug: string, name: string) -> Category {
+  Category(3, slug, name)
+}
+
+fn updateCategory(slug: string, newSlug: string, name: string) -> Option<Category> {
+  if (getCategoryBySlug(slug) as Category cat) {
+    Option(Category(cat.id, newSlug, name))
+  } else {
+    None()
+  }
+}
+
+fn deleteCategory(slug: string) -> Option<Category> {
+  getCategoryBySlug(slug)
+}
+
+fn listTags() -> List<Tag> {
+  allTags()
+}
+
+fn getTagBySlug(slug: string) -> Option<Tag> {
+  allTags().first([slug] (tag: Tag) -> bool { tag.slug == slug })
+}
+
+fn createTag(slug: string, name: string) -> Tag {
+  Tag(4, slug, name)
+}
+
+fn updateTag(slug: string, newSlug: string, name: string) -> Option<Tag> {
+  if (getTagBySlug(slug) as Tag tag) {
+    Option(Tag(tag.id, newSlug, name))
+  } else {
+    None()
+  }
+}
+
+fn deleteTag(slug: string) -> Option<Tag> {
+  getTagBySlug(slug)
+}
+
+fn allComments() -> List<Comment> {
+  initBlogState().comments
+}
+
+fn getComment(id: int) -> Option<Comment> {
+  allComments().first([id] (c: Comment) -> bool { c.id == id })
+}
+
+fn getCommentsForPost(postId: int) -> List<Comment> {
+  allComments().filter([postId] (c: Comment) -> bool { c.postId == postId })
+}
+
+fn createComment(postId: int, authorName: string, body: string, parentId: int, status: string) -> Comment {
+  cid = initBlogState().nextCommentId;
+  Comment(cid, postId, body, authorName, parentId, "", status)
+}
+
+fn deleteComment(id: int) -> Option<Comment> {
+  getComment(id)
+}
+
+fn commentJson(c: Comment) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(c.id)) ::
+    jsonField("postId", JsonValue(c.postId)) ::
+    jsonField("body", c.body) ::
+    jsonField("authorName", c.authorName) ::
+    jsonField("parentId", JsonValue(c.parentId)) ::
+    jsonField("createdAt", c.createdAt) ::
+    jsonField("status", c.status)
+  )
+}
+
+fn commentsJson(comments: List<Comment>) -> JsonValue {
+  jsonArray(comments.map([](c: Comment) commentJson(c)))
+}
+
+fn createRevision(id: int, postId: int, body: string) -> PostRevision {
+  PostRevision(id, postId, body)
+}
+
+fn listRevisions(postId: int) -> List<PostRevision> {
+  List<PostRevision>()
+}
+
+fn getRevision(id: int) -> Option<PostRevision> {
+  None()
+}
+
+fn revisionJson(r: PostRevision) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(r.id)) ::
+    jsonField("postId", JsonValue(r.postId)) ::
+    jsonField("body", r.body)
+  )
+}
+
+fn revisionsJson(revisions: List<PostRevision>) -> JsonValue {
+  jsonArray(revisions.map([](r: PostRevision) revisionJson(r)))
+}
