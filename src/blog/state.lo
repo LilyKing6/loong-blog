@@ -16,24 +16,32 @@ struct BlogState {
 
 fn initBlogState() -> BlogState {
   BlogState(
-    Post(1, "hello-loong", "Hello Loong", "First Loong blog post served by the shared web framework.", "published", "2026-05-05T00:00:00Z", 1, List<int>()) ::
-    Post(2, "framework-notes", "Framework Notes", "Router, middleware, JSON, auth and body handling are now shared modules.", "draft", "", 2, List<int>()),
+    Post(1, "hello-loong", "Hello Loong", "# Hello Loong\n\nWelcome to the Loong Web Framework! This is the first post on our blog, built entirely with Loong.\n\n## What is Loong?\n\nLoong is a systems programming language with a focus on simplicity and safety. The web framework extends this philosophy to server-side development.\n\n## Why use it?\n\n- Zero external dependencies\n- Built-in HTTP server\n- Type-safe routing\n- First-class JSON support\n\n## Getting started\n\n```loong\ncli(\n  cliCmd(\"serve\", serveBlog, \"Serve blog\")\n)\n```\n\nThat's it! Your blog is running.", "published", "2026-05-05T00:00:00Z", 1, 1 :: 2 :: List<int>()) ::
+    Post(2, "framework-notes", "Framework Architecture Notes", "# Framework Architecture\n\nNotes on how the Loong web framework is structured.\n\n## Library packages\n\nThe framework is split into two `.lpkg` library packages:\n\n- `loong-web`: HTTP server, routing, middleware, JSON, static files, auth\n- `loong-shared`: Shared data models (User, Post, Comment, DocPage, etc.)\n\n## Visibility\n\nAll exported APIs use explicit `public` visibility (language spec §14.5).\n\n## Build\n\n```bash\nloc build --manifest loong.toml --target blog\n```", "draft", "", 1, 3 :: List<int>()) ::
+    Post(3, "getting-started-with-routes", "Getting Started with Routes", "# Getting Started with Routes\n\nLearn how to define routes in a Loong web application.\n\n## Basic routing\n\n```loong\nfn myRoutes() -> List<HttpRoute> {\n  routeGroup(\n    \"/api\",\n    HttpRoute(HttpMethod.Get, \"/hello\", [](ctx) -> HttpResp {\n      jsonOk(jsonObject(jsonField(\"msg\", \"Hi!\")))\n    })\n  )\n}\n```\n\n## Route groups\n\nUse `routeGroup` to prefix multiple routes.\n\n## Middleware\n\nMiddleware runs before route handlers for auth, logging, CORS, etc.", "published", "2026-06-10T00:00:00Z", 1, 2 :: 3 :: List<int>()) ::
+    Post(4, "markdown-rendering", "Markdown Rendering in Loong", "# Markdown Rendering\n\nThe blog frontend renders Markdown to HTML using a lightweight regex-based renderer.\n\n## Supported syntax\n\n- Headers (h1-h3)\n- **Bold** and *italic*\n- `inline code` and code blocks\n- Lists (ordered and unordered)\n- Blockquotes\n- Horizontal rules\n\n## Editor preview\n\nThe admin editor provides real-time Markdown preview side-by-side with the editor.", "published", "2026-07-01T00:00:00Z", 1, 2 :: List<int>()) ::
+    Post(5, "deploying-with-docker", "Deploying with Docker", "# Deploying with Docker\n\nA guide to containerizing your Loong blog application.\n\n## Dockerfile\n\n```dockerfile\nFROM debian:bookworm-slim\nCOPY blog.lx /app/blog.lx\nCOPY site/ /app/site/\nWORKDIR /app\nCMD [\"./blog.lx\", \"serve\", \"-p\", \"8080\", \"-R\", \"site\"]\n```\n\n## docker-compose\n\n```yaml\nservices:\n  blog:\n    build: .\n    ports:\n      - \"8080:8080\"\n```", "draft", "", 2, List<int>()),
     Category(1, "tech", "Technology") ::
-    Category(2, "life", "Lifestyle"),
+    Category(2, "devops", "DevOps"),
     Tag(1, "loong", "Loong") ::
     Tag(2, "web", "Web Framework") ::
     Tag(3, "tutorial", "Tutorial"),
-    List<Comment>(),
-    3,
+    Comment(1, 1, "Great first post! Looking forward to more.", "Alice", 0, "2026-05-06T10:00:00Z", "published") ::
+    Comment(2, 1, "Thanks for the introduction. How do I install Loong?", "Bob", 0, "2026-05-07T14:30:00Z", "published") ::
+    Comment(3, 3, "The route group example was really helpful.", "Charlie", 0, "2026-06-11T09:00:00Z", "published"),
+    6,
     3,
     4,
-    1
+    4
   )
 }
 
 fn allPosts() -> List<Post> {
-  Post(1, "hello-loong", "Hello Loong", "First Loong blog post served by the shared web framework.", "published", "2026-05-05T00:00:00Z", 1, List<int>()) ::
-  Post(2, "framework-notes", "Framework Notes", "Router, middleware, JSON, auth and body handling are now shared modules.", "draft", "", 2, List<int>())
+  Post(1, "hello-loong", "Hello Loong", "# Hello Loong\n\nWelcome to the Loong Web Framework! This is the first post on our blog, built entirely with Loong.\n\n## What is Loong?\n\nLoong is a systems programming language with a focus on simplicity and safety. The web framework extends this philosophy to server-side development.\n\n## Why use it?\n\n- Zero external dependencies\n- Built-in HTTP server\n- Type-safe routing\n- First-class JSON support\n\n## Getting started\n\n```loong\ncli(\n  cliCmd(\"serve\", serveBlog, \"Serve blog\")\n)\n```\n\nThat's it! Your blog is running.", "published", "2026-05-05T00:00:00Z", 1, 1 :: 2 :: List<int>()) ::
+  Post(2, "framework-notes", "Framework Architecture Notes", "# Framework Architecture\n\nNotes on how the Loong web framework is structured.\n\n## Library packages\n\nThe framework is split into two `.lpkg` library packages:\n\n- `loong-web`: HTTP server, routing, middleware, JSON, static files, auth\n- `loong-shared`: Shared data models (User, Post, Comment, DocPage, etc.)\n\n## Visibility\n\nAll exported APIs use explicit `public` visibility (language spec §14.5).\n\n## Build\n\n```bash\nloc build --manifest loong.toml --target blog\n```", "draft", "", 1, 3 :: List<int>()) ::
+  Post(3, "getting-started-with-routes", "Getting Started with Routes", "# Getting Started with Routes\n\nLearn how to define routes in a Loong web application.\n\n## Basic routing\n\n```loong\nfn myRoutes() -> List<HttpRoute> {\n  routeGroup(\n    \"/api\",\n    HttpRoute(HttpMethod.Get, \"/hello\", [](ctx) -> HttpResp {\n      jsonOk(jsonObject(jsonField(\"msg\", \"Hi!\")))\n    })\n  )\n}\n```\n\n## Route groups\n\nUse `routeGroup` to prefix multiple routes.\n\n## Middleware\n\nMiddleware runs before route handlers for auth, logging, CORS, etc.", "published", "2026-06-10T00:00:00Z", 1, 2 :: 3 :: List<int>()) ::
+  Post(4, "markdown-rendering", "Markdown Rendering in Loong", "# Markdown Rendering\n\nThe blog frontend renders Markdown to HTML using a lightweight regex-based renderer.\n\n## Supported syntax\n\n- Headers (h1-h3)\n- **Bold** and *italic*\n- `inline code` and code blocks\n- Lists (ordered and unordered)\n- Blockquotes\n- Horizontal rules\n\n## Editor preview\n\nThe admin editor provides real-time Markdown preview side-by-side with the editor.", "published", "2026-07-01T00:00:00Z", 1, 2 :: List<int>()) ::
+  Post(5, "deploying-with-docker", "Deploying with Docker", "# Deploying with Docker\n\nA guide to containerizing your Loong blog application.\n\n## Dockerfile\n\n```dockerfile\nFROM debian:bookworm-slim\nCOPY blog.lx /app/blog.lx\nCOPY site/ /app/site/\nWORKDIR /app\nCMD [\"./blog.lx\", \"serve\", \"-p\", \"8080\", \"-R\", \"site\"]\n```\n\n## docker-compose\n\n```yaml\nservices:\n  blog:\n    build: .\n    ports:\n      - \"8080:8080\"\n```", "draft", "", 2, List<int>())
 }
 
 fn allCategories() -> List<Category> {
@@ -116,7 +124,9 @@ fn deleteTag(slug: string) -> Option<Tag> {
 }
 
 fn allComments() -> List<Comment> {
-  initBlogState().comments
+  Comment(1, 1, "Great first post! Looking forward to more.", "Alice", 0, "2026-05-06T10:00:00Z", "published") ::
+  Comment(2, 1, "Thanks for the introduction. How do I install Loong?", "Bob", 0, "2026-05-07T14:30:00Z", "published") ::
+  Comment(3, 3, "The route group example was really helpful.", "Charlie", 0, "2026-06-11T09:00:00Z", "published") :: List<Comment>()
 }
 
 fn getComment(id: int) -> Option<Comment> {

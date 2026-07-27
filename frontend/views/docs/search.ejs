@@ -1,0 +1,24 @@
+<div class="hero">
+  <h1>Docs Search</h1>
+  <form class="search-form" style="justify-content:center" action="/docs/search" method="GET">
+    <input type="text" name="q" placeholder="Search documentation..." value="<%= q %>" autofocus>
+    <button type="submit">Search</button>
+  </form>
+</div>
+<% if (error) { %>
+  <div class="error-page"><p><%= error %></p></div>
+<% } else if (q) { %>
+  <div class="post-list">
+    <h2>Results for "<%= q %>" (<%= typeof count !== 'undefined' ? count : pages.length %>)</h2>
+    <% if (pages.length === 0) { %>
+      <p>No pages found. Try a different query.</p>
+    <% } else { %>
+      <% pages.forEach(function(p) { %>
+        <div class="post-card">
+          <h3><a href="/docs/v1.0/<%= encodeURIComponent(p.slug) %>"><%= p.title %></a></h3>
+          <div class="post-excerpt"><%= excerpt(p.body, 300) %></div>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+<% } %>

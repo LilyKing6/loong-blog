@@ -16,17 +16,19 @@ struct DocsState {
 
 fn initDocsState() -> DocsState {
   DocsState(
-    DocPage(1, "getting-started", "Getting Started", "# Getting Started\n\nWelcome to Loong! This guide will help you get up and running.\n\n## Prerequisites\n\n- Loong compiler `loc` installed\n- A text editor\n\n## Hello World\n\nCreate a file `hello.lo`:\n\n```\ncli(\n  cliCmd(\"greet\", []() { io.println(\"Hello, Loong!\"); nil }, \"Say hi\")\n)\n```\n\n## Next Steps\n\nRead the language spec and explore the standard library.") ::
-    DocPage(2, "installation", "Installation", "# Installation\n\n## Download\n\nDownload the latest Loong release from the official site.\n\n## Build from Source\n\n```bash\ngit clone https://github.com/loong/loong.git\ncd loong\nmkdir build && cd build\ncmake ..\nmake -j$(nproc)\n```\n\n## Verify\n\n```bash\nloc --version\n```\n\nExpected output: `Loong compiler [2.0.1]`") ::
-    DocPage(3, "language-basics", "Language Basics", "# Language Basics\n\n## Values and Types\n\nLoong has the following primitive types:\n- `int`, `long`, `float`\n- `char`, `string`\n- `bool`\n\n## Variables\n\n```\nx = 42;\ny = \"hello\";\n```\n\n## Functions\n\n```\nfn add(a: int, b: int) -> int {\n  a + b\n}\n```\n\n## Lists\n\n```\nnumbers = int[]{1, 2, 3};\nnames = \"Alice\" :: \"Bob\" :: List<string>();\n```"),
+    DocPage(1, "getting-started", "Getting Started", "# Getting Started\n\nWelcome to Loong! This guide will help you get up and running.\n\n## Prerequisites\n\n- Loong compiler `loc` (v2.0.1+)\n- A text editor with syntax highlighting\n- Basic familiarity with systems programming\n\n## Hello World\n\nCreate a file `hello.lo`:\n\n```loong\nimport std.io using;\n\ncli(\n  cliCmd(\"greet\", []() { io.println(\"Hello, Loong!\"); nil }, \"Say hi\")\n)\n```\n\nRun it:\n\n```bash\nloc hello.lo\n./hello greet\n```\n\n## Project structure\n\nA typical Loong web project looks like:\n\n```\nmy-app/\n  loong.toml\n  src/\n    main.lo\n  site/\n    index.html\n```\n\n## Next Steps\n\n- Read [Installation](/docs/v1.0/installation)\n- Learn [Language Basics](/docs/v1.0/language-basics)\n- Explore the [web framework](/docs/v1.0/web-framework)") ::
+    DocPage(2, "installation", "Installation", "# Installation\n\n## Download\n\nDownload the latest Loong release from the [official site](https://github.com/loong/loong/releases).\n\n## Build from Source\n\n```bash\ngit clone https://github.com/loong/loong.git\ncd loong\nmkdir build && cd build\ncmake ..\nmake -j$(nproc)\n```\n\n## Verify\n\n```bash\nloc --version\n```\n\nExpected output: `Loong compiler [2.0.1]`\n\n## Editor setup\n\n- **VS Code**: Install the Loong extension\n- **Vim/Neovim**: Use the built-in syntax file in `editors/vim/`\n- **Emacs**: Use `loong-mode` from MELPA\n\n## Troubleshooting\n\nIf `loc` is not found, add it to your PATH:\n\n```bash\nexport PATH=$PATH:/path/to/loong/build/out\n```") ::
+    DocPage(3, "language-basics", "Language Basics", "# Language Basics\n\n## Values and Types\n\nLoong has the following primitive types:\n\n- `int`, `long`, `float`\n- `char`, `string`\n- `bool`\n\n## Variables\n\n```loong\nx = 42;\ny = \"hello\";\nflag = true;\n```\n\n## Functions\n\n```loong\nfn add(a: int, b: int) -> int {\n  a + b\n}\n```\n\n## Structs\n\n```loong\nstruct User {\n  id: int,\n  name: string\n}\n```\n\n## Lists\n\n```loong\nnumbers = int[]{1, 2, 3};\nnames = \"Alice\" :: \"Bob\" :: List<string>();\n```\n\n## Closures\n\n```loong\ndouble = [](x: int) -> int { x * 2 };\nresult = double(21);\n```\n\n## Pattern matching\n\n```loong\nif (opt as Option<int> some) {\n  io.println(some);\n} else {\n  io.println(\"none\");\n}\n```") ::
+    DocPage(4, "web-framework", "Web Framework", "# Web Framework\n\nThe Loong Web Framework provides everything you need to build HTTP servers.\n\n## Features\n\n- HTTP/1.1 server with routing\n- Middleware pipeline\n- JSON request/response handling\n- Static file serving\n- Session-based authentication\n- CORS support\n- File upload handling\n\n## Quick start\n\n```loong\nimport web.server using;\n\nimpure fn serve(s: ServerSettings) -> Option<Error> {\n  serveWithRoutes(s, myRoutes())\n}\n```\n\n## Library packages\n\nThe framework is distributed as two `.lpkg` packages:\n\n- `loong-web`: Core web modules (21 modules)\n- `loong-shared`: Shared data models\n\n## Visibility\n\nAll public APIs are marked with `public` visibility per language spec §14.5."),
     List<DocVersion>(
       DocVersion(1, "v1.0")
     ),
     DocNavNode(1, 1, "Getting Started", "getting-started") ::
     DocNavNode(2, 1, "Installation", "installation") ::
-    DocNavNode(3, 1, "Language Basics", "language-basics") :: List<DocNavNode>(),
+    DocNavNode(3, 1, "Language Basics", "language-basics") ::
+    DocNavNode(4, 1, "Web Framework", "web-framework") :: List<DocNavNode>(),
     List<DocRevision>(),
-    4,
+    5,
     2,
     4,
     1

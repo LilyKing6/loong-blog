@@ -1,0 +1,23 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <h2>Posts (<%= posts.length %>)</h2>
+  <a href="/admin/posts/new" class="product_btn">+ New Post</a>
+</div>
+<table class="admin-table">
+  <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+  <tbody>
+    <% posts.forEach(function(p) { %>
+      <tr>
+        <td><a href="/post?slug=<%= encodeURIComponent(p.slug) %>"><%= p.title %></a></td>
+        <td style="font-family:monospace;font-size:13px;color:#8a9e8a"><%= p.slug %></td>
+        <td><%= p.status %></td>
+        <td><%= formatDate(p.publishedAt) %></td>
+        <td style="display:flex;gap:8px">
+          <a href="/admin/posts/<%= encodeURIComponent(p.slug) %>/edit" class="product_btn ghost small">Edit</a>
+          <form action="/admin/posts/<%= encodeURIComponent(p.slug) %>/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this post?')">
+            <button type="submit" class="product_btn danger small">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>

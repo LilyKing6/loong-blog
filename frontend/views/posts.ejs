@@ -1,0 +1,31 @@
+<% if (error) { %>
+  <div class="error-page">
+    <h2>Oops</h2>
+    <p><%= error %></p>
+  </div>
+<% } else { %>
+  <div class="post-list">
+    <h2><%= filterLabel %> (<%= posts.length %>)</h2>
+    <% if (posts.length === 0) { %>
+      <p>No posts found.</p>
+    <% } else { %>
+      <% posts.forEach(function(p) { %>
+        <div class="post-card">
+          <h3><a href="/post?slug=<%= encodeURIComponent(p.slug) %>"><%= p.title %></a></h3>
+          <div class="post-meta">
+            <span><%= formatDate(p.publishedAt) %></span>
+            <span><%= p.status %></span>
+          </div>
+          <div class="post-excerpt"><%= excerpt(p.body) %></div>
+          <% if (p.tags && p.tags.length > 0) { %>
+            <div class="post-tags">
+              <% p.tags.forEach(function(t) { %>
+                <a class="tag" href="/posts?tag=<%= encodeURIComponent(t.slug) %>"><%= t.name %></a>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+<% } %>

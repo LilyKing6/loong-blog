@@ -1,0 +1,35 @@
+<% if (error) { %>
+  <div class="error-page"><h2>Cannot load docs</h2><p><%= error %></p></div>
+<% } else { %>
+  <section class="hero">
+    <h1><%= title %></h1>
+    <p><%= pageCount %> pages across <%= versionCount %> version(s).</p>
+  </section>
+
+  <div class="content-layout">
+    <div class="content-main post-list">
+      <h2>Versions</h2>
+      <% if (versions.length === 0) { %>
+        <p>No versions yet.</p>
+      <% } else { %>
+        <% versions.forEach(function(v) { %>
+          <div class="post-card">
+            <h3><a href="/docs/<%= encodeURIComponent(v.name) %>"><%= v.name %></a></h3>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+    <div class="content-sidebar">
+      <div class="sidebar-section">
+        <h4>Navigation</h4>
+        <% if (navNodes.length === 0) { %>
+          <p style="color:#8a9e8a;font-size:13px">No navigation available.</p>
+        <% } else { %>
+          <% navNodes.forEach(function(n) { %>
+            <a href="/docs/v1.0/<%= encodeURIComponent(n.path) %>"><%= n.title %></a>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+<% } %>

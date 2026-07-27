@@ -1,5 +1,2 @@
-*.lobj
-*.loh
-*.lx
 node_modules/
 .env

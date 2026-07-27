@@ -1,0 +1,30 @@
+<% if (error) { %>
+  <div class="error-page"><h2>Oops</h2><p><%= error %></p></div>
+<% } else { %>
+  <div class="content-layout">
+    <div class="content-main post-list">
+      <h2>Categories (<%= categories.length %>)</h2>
+      <% if (categories.length === 0) { %>
+        <p>No categories yet.</p>
+      <% } else { %>
+        <% categories.forEach(function(c) { %>
+          <div class="post-card">
+            <h3><a href="/posts?category=<%= encodeURIComponent(c.slug) %>"><%= c.name %></a></h3>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+    <div class="content-sidebar">
+      <div class="sidebar-section">
+        <h4>Tags</h4>
+        <% if (tags.length === 0) { %>
+          <p style="color:#8a9e8a;font-size:13px">No tags yet.</p>
+        <% } else { %>
+          <% tags.forEach(function(t) { %>
+            <a href="/posts?tag=<%= encodeURIComponent(t.slug) %>"><%= t.name %></a>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+<% } %>

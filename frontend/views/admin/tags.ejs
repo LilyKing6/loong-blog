@@ -1,0 +1,20 @@
+<h2>Tags (<%= tags.length %>)</h2>
+<form class="admin-form" action="/admin/tags/create" method="POST" style="max-width:none;margin-bottom:24px">
+  <div style="display:flex;gap:12px;align-items:flex-end">
+    <div style="flex:1"><label>Slug</label><input type="text" name="slug" required></div>
+    <div style="flex:1"><label>Name</label><input type="text" name="name" required></div>
+    <button type="submit" class="product_btn">+ Add</button>
+  </div>
+</form>
+<table class="admin-table">
+  <thead><tr><th>Name</th><th>Slug</th><th>Actions</th></tr></thead>
+  <tbody>
+    <% tags.forEach(function(t) { %>
+      <tr>
+        <td><%= t.name %></td>
+        <td style="font-family:monospace;color:#8a9e8a"><%= t.slug %></td>
+        <td><a href="/posts?tag=<%= encodeURIComponent(t.slug) %>" class="product_btn ghost small">View</a></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>

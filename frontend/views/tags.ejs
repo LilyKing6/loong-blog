@@ -1,0 +1,16 @@
+<% if (error) { %>
+  <div class="error-page"><h2>Oops</h2><p><%= error %></p></div>
+<% } else { %>
+  <div class="post-list">
+    <h2>Tags (<%= tags.length %>)</h2>
+    <% if (tags.length === 0) { %>
+      <p>No tags yet.</p>
+    <% } else { %>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <% tags.forEach(function(t) { %>
+          <a class="tag" href="/posts?tag=<%= encodeURIComponent(t.slug) %>" style="font-size:15px;padding:6px 14px"><%= t.name %></a>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+<% } %>

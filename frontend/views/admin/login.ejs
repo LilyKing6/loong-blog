@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Login — Loong Blog</title>
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-box">
+      <h1>Loong Admin</h1>
+      <p>Enter any username to login (demo mode).</p>
+      <% if (error) { %><div class="flash-msg error"><%= error %></div><% } %>
+      <form action="/admin/login" method="POST">
+        <input type="text" name="username" placeholder="Username" value="admin" autofocus>
+        <button type="submit" class="product_btn">Login</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

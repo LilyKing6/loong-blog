@@ -1,0 +1,14 @@
+<div class="error-page">
+  <h2><%= code || 'Error' %></h2>
+  <% if (code === 404) { %>
+    <p>The page you're looking for doesn't exist.</p>
+  <% } else if (code === 500) { %>
+    <p>Something went wrong on our end. Please try again later.</p>
+  <% } else { %>
+    <p><%= message || 'An unexpected error occurred.' %></p>
+  <% } %>
+  <div style="margin-top:24px;display:flex;gap:12px;justify-content:center">
+    <a href="/" class="product_btn">← Back to Home</a>
+    <a href="/posts" class="product_btn ghost">Browse Posts</a>
+  </div>
+</div>

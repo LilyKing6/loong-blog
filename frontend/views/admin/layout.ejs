@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Loong Blog</title>
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <header class="admin-header">
+    <div class="container">
+      <a href="/admin" class="site-title">Loong Admin</a>
+      <div class="user-info">
+        <% if (typeof user !== 'undefined' && user) { %>
+          <%= user.name %> (<%= user.role %>) · <a href="/" style="color:#a8c0a8">View Site</a> · <button class="btn-logout" onclick="window.location='/admin/logout'">Logout</button>
+        <% } else { %>
+          <a href="/admin/login" style="color:#a8c0a8">Login</a>
+        <% } %>
+      </div>
+    </div>
+  </header>
+  <div class="admin-layout">
+    <nav class="admin-sidebar">
+      <h4>Content</h4>
+      <a href="/admin" class="<%= typeof active !== 'undefined' && active === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+      <a href="/admin/posts" class="<%= typeof active !== 'undefined' && active === 'posts' ? 'active' : '' %>">Posts</a>
+      <a href="/admin/categories" class="<%= typeof active !== 'undefined' && active === 'categories' ? 'active' : '' %>">Categories</a>
+      <a href="/admin/tags" class="<%= typeof active !== 'undefined' && active === 'tags' ? 'active' : '' %>">Tags</a>
+      <h4>Actions</h4>
+      <a href="/admin/posts/new">New Post</a>
+    </nav>
+    <div class="admin-main">
+      <% if (typeof error !== 'undefined' && error) { %><div class="flash-msg error"><%= error %></div><% } %>
+      <%- body %>
+    </div>
+  </div>
+</body>
+</html>

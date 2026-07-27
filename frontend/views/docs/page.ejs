@@ -1,0 +1,32 @@
+<% if (error) { %>
+  <div class="error-page"><h2>Page Not Found</h2><p><%= error %></p></div>
+<% } else { %>
+  <div class="content-layout">
+    <div class="content-sidebar">
+      <div class="sidebar-section">
+        <h4><%= versionName %></h4>
+        <% if (navNodes.length === 0) { %>
+          <p style="color:#8a9e8a;font-size:13px">No navigation.</p>
+        <% } else { %>
+          <% navNodes.forEach(function(n) { %>
+            <a href="/docs/<%= encodeURIComponent(versionName) %>/<%= encodeURIComponent(n.path) %>" style="<%= page.slug === n.path ? 'color:#1a1f1b;font-weight:700' : '' %>"><%= n.title %></a>
+          <% }) %>
+        <% } %>
+      </div>
+      <div class="sidebar-section">
+        <h4>Search</h4>
+        <form action="/docs/search" method="GET" style="display:flex;gap:6px">
+          <input type="text" name="q" placeholder="Search docs..." style="flex:1;padding:6px 10px;border:1px solid #c0d4c0;border-radius:4px;font-size:13px;font-family:inherit">
+          <button type="submit" style="padding:6px 10px;background:#4a6b4a;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Go</button>
+        </form>
+      </div>
+    </div>
+    <div class="content-main post-detail" style="padding-top:0">
+      <a class="back-link" href="/docs/<%= encodeURIComponent(versionName) %>">← Back to <%= versionName %></a>
+      <h1><%= page.title || 'Untitled' %></h1>
+      <div class="post-body">
+        <%- html %>
+      </div>
+    </div>
+  </div>
+<% } %>

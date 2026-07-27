@@ -1,0 +1,49 @@
+<% if (error) { %>
+  <div class="error-page">
+    <h2>Post Not Found</h2>
+    <p><%= error %></p>
+    <a href="/posts">← All Posts</a>
+  </div>
+<% } else { %>
+  <div class="post-detail">
+    <a class="back-link" href="/posts">← All Posts</a>
+    <h1><%= post.title %></h1>
+    <div class="post-meta">
+      <span><%= formatDate(post.publishedAt) %></span>
+      <span><%= post.status %></span>
+      <% if (categoryName) { %><span><%= categoryName %></span><% } %>
+    </div>
+    <% if (post.tags && post.tags.length > 0) { %>
+      <div class="post-tags" style="margin-bottom:24px">
+        <% post.tags.forEach(function(t) { %>
+          <a class="tag" href="/posts?tag=<%= encodeURIComponent(t.slug) %>"><%= t.name %></a>
+        <% }) %>
+      </div>
+    <% } %>
+    <div class="post-body">
+      <%- renderMarkdown(post.body) %>
+    </div>
+
+    <div class="comment-section">
+      <h3>Comments (<%= comments.length %>)</h3>
+      <% if (comments.length === 0) { %>
+        <p style="color:#8a9e8a">No comments yet. Be the first!</p>
+      <% } else { %>
+        <% comments.forEach(function(c) { %>
+          <div class="comment-card">
+            <div class="comment-author"><%= c.authorName || 'Anonymous' %></div>
+            <div class="comment-date"><%= formatDate(c.createdAt) %></div>
+            <div class="comment-body"><%= c.body %></div>
+          </div>
+        <% }) %>
+      <% } %>
+
+      <form class="comment-form" action="/post/<%= encodeURIComponent(post.slug) %>/comment" method="POST">
+        <input type="text" name="author" placeholder="Your name (optional)">
+        <textarea name="body" placeholder="Write a comment..." required></textarea>
+        <button type="submit">Post Comment</button>
+        <p class="note">Comments are anonymous. Be respectful.</p>
+      </form>
+    </div>
+  </div>
+<% } %>

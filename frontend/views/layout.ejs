@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof title !== 'undefined' ? title : 'Loong Blog' %></title>
+  <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'A blog and documentation site built on the Loong Web Framework.' %>">
+  <meta name="author" content="Loong Blog">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="alternate" type="application/rss+xml" title="Loong Blog" href="/feed.xml">
+  <% if (typeof ogTitle !== 'undefined') { %>
+  <meta property="og:title" content="<%= ogTitle %>">
+  <meta property="og:description" content="<%= typeof ogDescription !== 'undefined' ? ogDescription : '' %>">
+  <meta property="og:type" content="<%= typeof ogType !== 'undefined' ? ogType : 'website' %>">
+  <meta property="og:site_name" content="Loong Blog">
+  <% } %>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="site-title">Loong Blog</a>
+      <nav class="site-nav">
+        <a href="/" class="<%= typeof active !== 'undefined' && active === 'home' ? 'active' : '' %>">Home</a>
+        <a href="/posts" class="<%= typeof active !== 'undefined' && active === 'posts' ? 'active' : '' %>">Posts</a>
+        <a href="/categories" class="<%= typeof active !== 'undefined' && active === 'categories' ? 'active' : '' %>">Categories</a>
+        <a href="/tags" class="<%= typeof active !== 'undefined' && active === 'tags' ? 'active' : '' %>">Tags</a>
+        <a href="/docs" class="<%= typeof active !== 'undefined' && active === 'docs' ? 'active' : '' %>">Docs</a>
+        <a href="/search" class="<%= typeof active !== 'undefined' && active === 'search' ? 'active' : '' %>">Search</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    <%- body %>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>Powered by <a href="https://github.com/LilyKing6/loong-server" target="_blank">Loong Web Framework</a> · <a href="/feed.xml">RSS Feed</a></p>
+    </div>
+  </footer>
+</body>
+</html>

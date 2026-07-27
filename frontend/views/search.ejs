@@ -1,0 +1,27 @@
+<% if (error) { %>
+  <div class="error-page"><h2>Search Error</h2><p><%= error %></p></div>
+<% } else { %>
+  <div class="hero">
+    <h1>Search</h1>
+    <form class="search-form" style="justify-content:center" action="/search" method="GET">
+      <input type="text" name="q" placeholder="Search posts..." value="<%= q %>" autofocus>
+      <button type="submit">Search</button>
+    </form>
+  </div>
+  <% if (q) { %>
+    <div class="post-list">
+      <h2>Results for "<%= q %>" (<%= count %>)</h2>
+      <% if (posts.length === 0) { %>
+        <p>No posts found. Try a different query.</p>
+      <% } else { %>
+        <% posts.forEach(function(p) { %>
+          <div class="post-card">
+            <h3><a href="/post?slug=<%= encodeURIComponent(p.slug) %>"><%= p.title %></a></h3>
+            <div class="post-meta"><span><%= formatDate(p.publishedAt) %></span></div>
+            <div class="post-excerpt"><%= excerpt(p.body, 300) %></div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  <% } %>
+<% } %>
