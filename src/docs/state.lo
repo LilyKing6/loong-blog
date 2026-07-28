@@ -1,7 +1,153 @@
 import std.core.list using;
 import std.core.option using;
+import std.io.file using;
+import std.io.path using;
+import std.sys.rt using;
+import std.format.json using;
 import web.json using;
 import shared.content using;
+
+
+fn jsonAsInt(v: JsonValue) -> int {
+  (if (v as float f) { f.int() } else { 0 })
+}
+
+fn jsonAsString(v: JsonValue) -> string {
+  (if (v as string s) { s } else { "" })
+}
+
+fn pageJson(p: DocPage) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(p.id)) ::
+    jsonField("slug", p.slug) ::
+    jsonField("title", p.title) ::
+    jsonField("body", p.body) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn versionJson(v: DocVersion) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(v.id)) ::
+    jsonField("name", v.name) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn navNodeJson(n: DocNavNode) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(n.id)) ::
+    jsonField("versionId", JsonValue(n.versionId)) ::
+    jsonField("title", n.title) ::
+    jsonField("path", n.path) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn docRevisionJson(r: DocRevision) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(r.id)) ::
+    jsonField("pageId", JsonValue(r.pageId)) ::
+    jsonField("body", r.body) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn stateJson(state: DocsState) -> JsonValue {
+  jsonObject(
+    jsonField("pages", jsonArray(state.pages.map([](p: DocPage) pageJson(p)))) ::
+    jsonField("versions", jsonArray(state.versions.map([](v: DocVersion) versionJson(v)))) ::
+    jsonField("navNodes", jsonArray(state.navNodes.map([](n: DocNavNode) navNodeJson(n)))) ::
+    jsonField("revisions", jsonArray(state.revisions.map([](r: DocRevision) docRevisionJson(r)))) ::
+    jsonField("nextPageId", JsonValue(state.nextPageId)) ::
+    jsonField("nextVersionId", JsonValue(state.nextVersionId)) ::
+    jsonField("nextNavNodeId", JsonValue(state.nextNavNodeId)) ::
+    jsonField("nextRevisionId", JsonValue(state.nextRevisionId)) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn jsonAsPage(v: JsonValue) -> DocPage {
+  (
+    if (v as JsonObject obj) {
+      (DocPage(jsonAsInt(obj.getField("id") ?? JsonValue(0)), jsonAsString(obj.getField("slug") ?? JsonValue("")), jsonAsString(obj.getField("title") ?? JsonValue("")), jsonAsString(obj.getField("body") ?? JsonValue(""))))
+    } else {
+      (DocPage(0, "", "", ""))
+    }
+  )
+}
+
+fn jsonAsVersion(v: JsonValue) -> DocVersion {
+  (
+    if (v as JsonObject obj) {
+      (DocVersion(jsonAsInt(obj.getField("id") ?? JsonValue(0)), jsonAsString(obj.getField("name") ?? JsonValue(""))))
+    } else {
+      (DocVersion(0, ""))
+    }
+  )
+}
+
+fn jsonAsNavNode(v: JsonValue) -> DocNavNode {
+  (
+    if (v as JsonObject obj) {
+      (DocNavNode(jsonAsInt(obj.getField("id") ?? JsonValue(0)), jsonAsInt(obj.getField("versionId") ?? JsonValue(0)), jsonAsString(obj.getField("title") ?? JsonValue("")), jsonAsString(obj.getField("path") ?? JsonValue(""))))
+    } else {
+      (DocNavNode(0, 0, "", ""))
+    }
+  )
+}
+
+fn jsonAsDocRevision(v: JsonValue) -> DocRevision {
+  (
+    if (v as JsonObject obj) {
+      (DocRevision(jsonAsInt(obj.getField("id") ?? JsonValue(0)), jsonAsInt(obj.getField("pageId") ?? JsonValue(0)), jsonAsString(obj.getField("body") ?? JsonValue(""))))
+    } else {
+      (DocRevision(0, 0, ""))
+    }
+  )
+}
+
+impure fn dataFilePath() -> Path {
+  pathAbsolute(pathRel() / "data" / "docs-state.json")
+}
+
+impure fn loadState() -> DocsState {
+  p = dataFilePath();
+  if (fileExists(p)) {
+    result = fileRead(p).failOnError();
+    parsed = parseJson(result).failOnError();
+    if (parsed as JsonObject obj) {
+      (
+        pagesVal = obj.getField("pages") ?? JsonValue(JsonNull());
+        versionsVal = obj.getField("versions") ?? JsonValue(JsonNull());
+        navVal = obj.getField("navNodes") ?? JsonValue(JsonNull());
+        revVal = obj.getField("revisions") ?? JsonValue(JsonNull());
+        pages = (if (pagesVal as JsonArray pa) { pa.entries.map([](pv: JsonValue) -> DocPage { jsonAsPage(pv) }) } else { defaultDocsState().pages });
+        versions = (if (versionsVal as JsonArray va) { va.entries.map([](vv: JsonValue) -> DocVersion { jsonAsVersion(vv) }) } else { defaultDocsState().versions });
+        navNodes = (if (navVal as JsonArray na) { na.entries.map([](nv: JsonValue) -> DocNavNode { jsonAsNavNode(nv) }) } else { defaultDocsState().navNodes });
+        revisions = (if (revVal as JsonArray ra) { ra.entries.map([](rv: JsonValue) -> DocRevision { jsonAsDocRevision(rv) }) } else { defaultDocsState().revisions });
+        nextPageId = jsonAsInt(obj.getField("nextPageId") ?? JsonValue(5));
+        nextVersionId = jsonAsInt(obj.getField("nextVersionId") ?? JsonValue(2));
+        nextNavNodeId = jsonAsInt(obj.getField("nextNavNodeId") ?? JsonValue(4));
+        nextRevisionId = jsonAsInt(obj.getField("nextRevisionId") ?? JsonValue(1));
+        DocsState(pages, versions, navNodes, revisions, nextPageId, nextVersionId, nextNavNodeId, nextRevisionId)
+      )
+    } else {
+      defaultDocsState()
+    }
+  } else {
+    defaultDocsState()
+  }
+}
+
+impure fn saveState(state: DocsState) -> Option<Error> {
+  p = dataFilePath();
+  dir = pathAbsolute(pathRel() / "data");
+  if (!fileDirExists(dir)) {
+    fileCreateDir(dir)
+  };
+  fileWrite(p, stateJson(state).string())
+}
 
 struct DocsState {
   pages: List<DocPage>,
@@ -14,7 +160,7 @@ struct DocsState {
   nextRevisionId: int
 }
 
-fn initDocsState() -> DocsState {
+fn defaultDocsState() -> DocsState {
   DocsState(
     DocPage(1, "getting-started", "Getting Started", "# Getting Started\n\nWelcome to Loong! This guide will help you get up and running.\n\n## Prerequisites\n\n- Loong compiler `loc` (v2.0.1+)\n- A text editor with syntax highlighting\n- Basic familiarity with systems programming\n\n## Hello World\n\nCreate a file `hello.lo`:\n\n```loong\nimport std.io using;\n\ncli(\n  cliCmd(\"greet\", []() { io.println(\"Hello, Loong!\"); nil }, \"Say hi\")\n)\n```\n\nRun it:\n\n```bash\nloc hello.lo\n./hello greet\n```\n\n## Project structure\n\nA typical Loong web project looks like:\n\n```\nmy-app/\n  loong.toml\n  src/\n    main.lo\n  site/\n    index.html\n```\n\n## Next Steps\n\n- Read [Installation](/docs/v1.0/installation)\n- Learn [Language Basics](/docs/v1.0/language-basics)\n- Explore the [web framework](/docs/v1.0/web-framework)") ::
     DocPage(2, "installation", "Installation", "# Installation\n\n## Download\n\nDownload the latest Loong release from the [official site](https://github.com/loong/loong/releases).\n\n## Build from Source\n\n```bash\ngit clone https://github.com/loong/loong.git\ncd loong\nmkdir build && cd build\ncmake ..\nmake -j$(nproc)\n```\n\n## Verify\n\n```bash\nloc --version\n```\n\nExpected output: `Loong compiler [2.0.1]`\n\n## Editor setup\n\n- **VS Code**: Install the Loong extension\n- **Vim/Neovim**: Use the built-in syntax file in `editors/vim/`\n- **Emacs**: Use `loong-mode` from MELPA\n\n## Troubleshooting\n\nIf `loc` is not found, add it to your PATH:\n\n```bash\nexport PATH=$PATH:/path/to/loong/build/out\n```") ::
@@ -35,88 +181,112 @@ fn initDocsState() -> DocsState {
   )
 }
 
-fn allPages() -> List<DocPage> {
-  initDocsState().pages
+impure fn allPages() -> List<DocPage> {
+  loadState().pages
 }
 
-fn getPageBySlug(slug: string) -> Option<DocPage> {
-  allPages().first([slug] (p: DocPage) -> bool { p.slug == slug })
+impure fn getPageBySlug(slug: string) -> Option<DocPage> {
+  loadState().pages.first([slug] (p: DocPage) -> bool { p.slug == slug })
 }
 
-fn listPagesByVersion(versionId: int) -> List<DocPage> {
-  nodes = initDocsState().navNodes.filter([versionId] (n: DocNavNode) -> bool { n.versionId == versionId });
-  allPages().filter([nodes] (p: DocPage) -> bool {
+impure fn listPagesByVersion(versionId: int) -> List<DocPage> {
+  state = loadState();
+  nodes = state.navNodes.filter([versionId] (n: DocNavNode) -> bool { n.versionId == versionId });
+  state.pages.filter([nodes] (p: DocPage) -> bool {
     nodes.any([p] (n: DocNavNode) -> bool { n.path == p.slug })
   })
 }
 
-fn searchPages(q: string) -> List<DocPage> {
-  allPages().filter([q] (p: DocPage) -> bool {
+impure fn searchPages(q: string) -> List<DocPage> {
+  loadState().pages.filter([q] (p: DocPage) -> bool {
     p.title.contains(q) || p.body.contains(q)
   })
 }
 
-fn createPage(page: DocPage) -> DocPage {
-  nextId = initDocsState().nextPageId;
-  DocPage(nextId, page.slug, page.title, page.body)
+impure fn createPage(page: DocPage) -> DocPage {
+  state = loadState();
+  p = DocPage(state.nextPageId, page.slug, page.title, page.body);
+  saveState(DocsState(state.pages :: p :: List<DocPage>(), state.versions, state.navNodes, state.revisions, state.nextPageId + 1, state.nextVersionId, state.nextNavNodeId, state.nextRevisionId));
+  p
 }
 
-fn updatePage(slug: string, page: DocPage) -> Option<DocPage> {
-  getPageBySlug(slug)
+impure fn updatePage(slug: string, page: DocPage) -> Option<DocPage> {
+  state = loadState();
+  newPages = state.pages.map([slug, page] (p: DocPage) -> DocPage { if (p.slug == slug) { page } else { p } });
+  saveState(DocsState(newPages, state.versions, state.navNodes, state.revisions, state.nextPageId, state.nextVersionId, state.nextNavNodeId, state.nextRevisionId));
+  Option(page)
 }
 
-fn deletePage(slug: string) -> Option<DocPage> {
-  getPageBySlug(slug)
-}
-
-fn allVersions() -> List<DocVersion> {
-  initDocsState().versions
-}
-
-fn getVersionByName(name: string) -> Option<DocVersion> {
-  allVersions().first([name] (v: DocVersion) -> bool { v.name == name })
-}
-
-fn createVersion(name: string) -> DocVersion {
-  nextId = initDocsState().nextVersionId;
-  DocVersion(nextId, name)
-}
-
-fn listNavNodes(versionId: int) -> List<DocNavNode> {
-  initDocsState().navNodes.filter([versionId] (n: DocNavNode) -> bool { n.versionId == versionId })
-}
-
-fn getNavNode(id: int) -> Option<DocNavNode> {
-  initDocsState().navNodes.first([id] (n: DocNavNode) -> bool { n.id == id })
-}
-
-fn createNavNode(node: DocNavNode) -> DocNavNode {
-  nextId = initDocsState().nextNavNodeId;
-  DocNavNode(nextId, node.versionId, node.title, node.path)
-}
-
-fn updateNavNode(id: int, node: DocNavNode) -> Option<DocNavNode> {
-  if (getNavNode(id) as DocNavNode existing) {
-    Option(DocNavNode(existing.id, node.versionId, node.title, node.path))
+impure fn deletePage(slug: string) -> Option<DocPage> {
+  state = loadState();
+  if (state.pages.first([slug] (p: DocPage) -> bool { p.slug == slug }) as DocPage found) {
+    saveState(DocsState(state.pages.filter([slug] (p: DocPage) -> bool { p.slug != slug }), state.versions, state.navNodes, state.revisions, state.nextPageId, state.nextVersionId, state.nextNavNodeId, state.nextRevisionId));
+    Option(found)
   } else {
     None()
   }
 }
 
-fn deleteNavNode(id: int) -> Option<DocNavNode> {
-  getNavNode(id)
+impure fn allVersions() -> List<DocVersion> {
+  loadState().versions
 }
 
-fn createRevision(nextId: int, pageId: int, body: string) -> DocRevision {
-  DocRevision(nextId, pageId, body)
+impure fn getVersionByName(name: string) -> Option<DocVersion> {
+  loadState().versions.first([name] (v: DocVersion) -> bool { v.name == name })
 }
 
-fn listRevisions(pageId: int) -> List<DocRevision> {
-  List<DocRevision>()
+impure fn createVersion(name: string) -> DocVersion {
+  state = loadState();
+  v = DocVersion(state.nextVersionId, name);
+  saveState(DocsState(state.pages, state.versions :: v :: List<DocVersion>(), state.navNodes, state.revisions, state.nextPageId, state.nextVersionId + 1, state.nextNavNodeId, state.nextRevisionId));
+  v
 }
 
-fn getRevision(id: int) -> Option<DocRevision> {
-  None()
+impure fn listNavNodes(versionId: int) -> List<DocNavNode> {
+  loadState().navNodes.filter([versionId] (n: DocNavNode) -> bool { n.versionId == versionId })
+}
+
+impure fn getNavNode(id: int) -> Option<DocNavNode> {
+  loadState().navNodes.first([id] (n: DocNavNode) -> bool { n.id == id })
+}
+
+impure fn createNavNode(node: DocNavNode) -> DocNavNode {
+  state = loadState();
+  n = DocNavNode(state.nextNavNodeId, node.versionId, node.title, node.path);
+  saveState(DocsState(state.pages, state.versions, state.navNodes :: n :: List<DocNavNode>(), state.revisions, state.nextPageId, state.nextVersionId, state.nextNavNodeId + 1, state.nextRevisionId));
+  n
+}
+
+impure fn updateNavNode(id: int, node: DocNavNode) -> Option<DocNavNode> {
+  state = loadState();
+  newNodes = state.navNodes.map([id, node] (n: DocNavNode) -> DocNavNode { if (n.id == id) { DocNavNode(n.id, node.versionId, node.title, node.path) } else { n } });
+  saveState(DocsState(state.pages, state.versions, newNodes, state.revisions, state.nextPageId, state.nextVersionId, state.nextNavNodeId, state.nextRevisionId));
+  Option(node)
+}
+
+impure fn deleteNavNode(id: int) -> Option<DocNavNode> {
+  state = loadState();
+  if (state.navNodes.first([id] (n: DocNavNode) -> bool { n.id == id }) as DocNavNode found) {
+    saveState(DocsState(state.pages, state.versions, state.navNodes.filter([id] (n: DocNavNode) -> bool { n.id != id }), state.revisions, state.nextPageId, state.nextVersionId, state.nextNavNodeId, state.nextRevisionId));
+    Option(found)
+  } else {
+    None()
+  }
+}
+
+impure fn createRevision(nextId: int, pageId: int, body: string) -> DocRevision {
+  state = loadState();
+  r = DocRevision(state.nextRevisionId, pageId, body);
+  saveState(DocsState(state.pages, state.versions, state.navNodes, state.revisions :: r :: List<DocRevision>(), state.nextPageId, state.nextVersionId, state.nextNavNodeId, state.nextRevisionId + 1));
+  r
+}
+
+impure fn listRevisions(pageId: int) -> List<DocRevision> {
+  loadState().revisions.filter([pageId] (r: DocRevision) -> bool { r.pageId == pageId })
+}
+
+impure fn getRevision(id: int) -> Option<DocRevision> {
+  loadState().revisions.first([id] (r: DocRevision) -> bool { r.id == id })
 }
 
 fn revisionJson(r: DocRevision) -> JsonValue {

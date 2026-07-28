@@ -87,7 +87,7 @@ fn slugFromTitle(title: string) -> string {
 
 // --- Health & Home ---
 
-fn docsHealth(ctx: RouteContext) -> HttpResp {
+impure fn docsHealth(ctx: RouteContext) -> HttpResp {
   jsonOk(
     jsonObject(
       jsonField("status", "ok") ::
@@ -96,7 +96,7 @@ fn docsHealth(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn docsHome(ctx: RouteContext) -> HttpResp {
+impure fn docsHome(ctx: RouteContext) -> HttpResp {
   (
     versions = allVersions();
     pages = allPages();
@@ -114,7 +114,7 @@ fn docsHome(ctx: RouteContext) -> HttpResp {
 
 // --- Page Routes ---
 
-fn pageListRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageListRoute(ctx: RouteContext) -> HttpResp {
   (
     versionName = ctx.queryField("version") ?? "";
     pages = if (versionName.isEmpty()) {
@@ -133,7 +133,7 @@ fn pageListRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn pageDetailRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageDetailRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.queryField("slug") ?? "";
     if (getPageBySlug(slug) as DocPage p) {
@@ -144,7 +144,7 @@ fn pageDetailRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn pageCreateRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageCreateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("docs.write");
     if (auth as HttpResp resp) {
@@ -174,7 +174,7 @@ fn pageCreateRoute(ctx: RouteContext) -> HttpResp {
 }
 
 
-fn pageUpdateRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageUpdateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("docs.write");
     if (auth as HttpResp resp) {
@@ -209,7 +209,7 @@ fn pageUpdateRoute(ctx: RouteContext) -> HttpResp {
 }
 
 
-fn pageDeleteRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageDeleteRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("docs.write");
     if (auth as HttpResp resp) {
@@ -235,7 +235,7 @@ fn pageDeleteRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn pageSearchRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageSearchRoute(ctx: RouteContext) -> HttpResp {
   (
     q = ctx.queryField("q") ?? "";
     if (q.isEmpty()) {
@@ -255,7 +255,7 @@ fn pageSearchRoute(ctx: RouteContext) -> HttpResp {
 
 // --- Version Routes ---
 
-fn versionListRoute(ctx: RouteContext) -> HttpResp {
+impure fn versionListRoute(ctx: RouteContext) -> HttpResp {
   (
     versions = allVersions();
     jsonOk(
@@ -267,7 +267,7 @@ fn versionListRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn versionCreateRoute(ctx: RouteContext) -> HttpResp {
+impure fn versionCreateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("docs.write");
     if (auth as HttpResp resp) {
@@ -297,7 +297,7 @@ fn versionCreateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn versionDetailRoute(ctx: RouteContext) -> HttpResp {
+impure fn versionDetailRoute(ctx: RouteContext) -> HttpResp {
   (
     name = ctx.queryField("name") ?? "";
     if (getVersionByName(name) as DocVersion v) {
@@ -319,11 +319,11 @@ fn versionDetailRoute(ctx: RouteContext) -> HttpResp {
 
 // --- Navigation Routes ---
 
-fn navListRoute(ctx: RouteContext) -> HttpResp {
+impure fn navListRoute(ctx: RouteContext) -> HttpResp {
   (
     versionName = ctx.queryField("version") ?? "";
     nodes = if (versionName.isEmpty()) {
-      initDocsState().navNodes
+      loadState().navNodes
     } else if (getVersionByName(versionName) as DocVersion v) {
       listNavNodes(v.id)
     } else {
@@ -338,7 +338,7 @@ fn navListRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn navCreateRoute(ctx: RouteContext) -> HttpResp {
+impure fn navCreateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("docs.write");
     if (auth as HttpResp resp) {
@@ -370,7 +370,7 @@ fn navCreateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn navUpdateRoute(ctx: RouteContext) -> HttpResp {
+impure fn navUpdateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("docs.write");
     if (auth as HttpResp resp) {
@@ -407,7 +407,7 @@ fn navUpdateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn navDeleteRoute(ctx: RouteContext) -> HttpResp {
+impure fn navDeleteRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("docs.write");
     if (auth as HttpResp resp) {
@@ -434,13 +434,13 @@ fn navDeleteRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn navTreeRoute(ctx: RouteContext) -> HttpResp {
+impure fn navTreeRoute(ctx: RouteContext) -> HttpResp {
   navListRoute(ctx)
 }
 
 // --- Revision Routes ---
 
-fn pageRevisionsRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageRevisionsRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.queryField("slug") ?? "";
     if (getPageBySlug(slug) as DocPage p) {
@@ -458,7 +458,7 @@ fn pageRevisionsRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn pageRevisionRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageRevisionRoute(ctx: RouteContext) -> HttpResp {
   (
     idStr = ctx.queryField("id") ?? "";
     id = txtIntParser()(idStr) ?? 0;
@@ -478,7 +478,7 @@ fn pageRevisionRoute(ctx: RouteContext) -> HttpResp {
 
 // --- Markdown Render ---
 
-fn pageRenderRoute(ctx: RouteContext) -> HttpResp {
+impure fn pageRenderRoute(ctx: RouteContext) -> HttpResp {
   (
     body = ctx.requestField("body") ?? "";
     jsonOk(
@@ -491,29 +491,29 @@ fn pageRenderRoute(ctx: RouteContext) -> HttpResp {
 
 // --- Routes ---
 
-fn docsRoutes() -> List<HttpRoute> {
+impure fn docsRoutes() -> List<HttpRoute> {
   routeGroup(
     "/api/docs",
-    HttpRoute(HttpMethod.Get, "/health", [](ctx: RouteContext) -> HttpResp { docsHealth(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/", [](ctx: RouteContext) -> HttpResp { docsHome(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/pages", [](ctx: RouteContext) -> HttpResp { pageListRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/page", [](ctx: RouteContext) -> HttpResp { pageDetailRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/pages", [](ctx: RouteContext) -> HttpResp { pageCreateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Put, "/pages", [](ctx: RouteContext) -> HttpResp { pageUpdateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Patch, "/pages", [](ctx: RouteContext) -> HttpResp { pageUpdateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Delete, "/pages", [](ctx: RouteContext) -> HttpResp { pageDeleteRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/pages/search", [](ctx: RouteContext) -> HttpResp { pageSearchRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/pages/revisions", [](ctx: RouteContext) -> HttpResp { pageRevisionsRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/pages/revision", [](ctx: RouteContext) -> HttpResp { pageRevisionRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/pages/render", [](ctx: RouteContext) -> HttpResp { pageRenderRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/versions", [](ctx: RouteContext) -> HttpResp { versionListRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/versions", [](ctx: RouteContext) -> HttpResp { versionCreateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/version", [](ctx: RouteContext) -> HttpResp { versionDetailRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/nav", [](ctx: RouteContext) -> HttpResp { navListRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/nav", [](ctx: RouteContext) -> HttpResp { navCreateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Put, "/nav", [](ctx: RouteContext) -> HttpResp { navUpdateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Delete, "/nav", [](ctx: RouteContext) -> HttpResp { navDeleteRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/nav/tree", [](ctx: RouteContext) -> HttpResp { navTreeRoute(ctx) })
+    HttpRoute(HttpMethod.Get, "/health", impure [](ctx: RouteContext) -> HttpResp { docsHealth(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/", impure [](ctx: RouteContext) -> HttpResp { docsHome(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages", impure [](ctx: RouteContext) -> HttpResp { pageListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/page", impure [](ctx: RouteContext) -> HttpResp { pageDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/pages", impure [](ctx: RouteContext) -> HttpResp { pageCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/pages", impure [](ctx: RouteContext) -> HttpResp { pageUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Patch, "/pages", impure [](ctx: RouteContext) -> HttpResp { pageUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/pages", impure [](ctx: RouteContext) -> HttpResp { pageDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages/search", impure [](ctx: RouteContext) -> HttpResp { pageSearchRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages/revisions", impure [](ctx: RouteContext) -> HttpResp { pageRevisionsRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/pages/revision", impure [](ctx: RouteContext) -> HttpResp { pageRevisionRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/pages/render", impure [](ctx: RouteContext) -> HttpResp { pageRenderRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/versions", impure [](ctx: RouteContext) -> HttpResp { versionListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/versions", impure [](ctx: RouteContext) -> HttpResp { versionCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/version", impure [](ctx: RouteContext) -> HttpResp { versionDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/nav", impure [](ctx: RouteContext) -> HttpResp { navListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/nav", impure [](ctx: RouteContext) -> HttpResp { navCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/nav", impure [](ctx: RouteContext) -> HttpResp { navUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/nav", impure [](ctx: RouteContext) -> HttpResp { navDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/nav/tree", impure [](ctx: RouteContext) -> HttpResp { navTreeRoute(ctx) })
   )
 }
 
