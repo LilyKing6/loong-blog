@@ -15,7 +15,7 @@
     <div class="post-list">
       <h2>Recent Posts</h2>
       <% posts.forEach(function(p) { %>
-        <div class="post-card">
+        <div class="post-card fade-in">
           <h3><a href="/post?slug=<%= encodeURIComponent(p.slug) %>"><%= p.title %></a></h3>
           <div class="post-meta">
             <span><%= formatDate(p.publishedAt) %></span>

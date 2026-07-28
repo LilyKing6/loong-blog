@@ -27,8 +27,22 @@
         <a href="/docs" class="<%= typeof active !== 'undefined' && active === 'docs' ? 'active' : '' %>">Docs</a>
         <a href="/search" class="<%= typeof active !== 'undefined' && active === 'search' ? 'active' : '' %>">Search</a>
       </nav>
+      <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
     </div>
   </header>
+  <script>
+    function toggleTheme() {
+      const root = document.documentElement;
+      const current = root.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    }
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+  </script>
   <main class="container">
     <%- body %>
   </main>

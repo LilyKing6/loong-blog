@@ -24,6 +24,31 @@
   --font-mono: "SF Mono", "Fira Code", "Cascadia Code", "Courier New", monospace;
   --font-serif: Georgia, "Times New Roman", serif;
 }
+
+/* === Light theme === */
+:root[data-theme="light"] {
+  --bg: #f8faf8;
+  --bg-card: #ffffff;
+  --bg-hover: #edf3ef;
+  --border: #dde8dd;
+  --text: #1a1f1b;
+  --text-dim: #3a4a3a;
+  --text-muted: #8a9e8a;
+  --accent: #4a6b4a;
+  --accent-hover: #375237;
+  --accent-dim: rgba(74,107,74,0.15);
+  --green: #3fb950;
+  --green-dim: rgba(63,185,80,0.12);
+  --orange: #b8860b;
+  --red: #c0392b;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* Theme toggle button */
+.theme-toggle { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; font-size: 14px; color: var(--text-dim); transition: all .15s; font-family: var(--font-sans); }
+.theme-toggle:hover { background: var(--bg-hover); color: var(--text); }
+
 html { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 body { min-height: 100vh; display: flex; flex-direction: column; }
 a { color: var(--accent); text-decoration: none; transition: color .15s; }
@@ -152,6 +177,23 @@ code { font-family: var(--font-mono); }
 .product_btn.small { padding: 4px 10px; font-size: 12px; }
 .product_btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--border); }
 .product_btn.ghost:hover { background: var(--bg-hover); }
+
+
+/* === Loading spinner === */
+.loading { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.loading::before { content: ""; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* === Pagination === */
+.pagination { display: flex; gap: 4px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+.pagination a, .pagination span { display: inline-block; padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text-dim); text-decoration: none; transition: all .15s; }
+.pagination a:hover { background: var(--bg-hover); color: var(--text); text-decoration: none; }
+.pagination .active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.pagination .disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* === Fade in animation === */
+.fade-in { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* === Responsive === */
 @media (max-width: 700px) {

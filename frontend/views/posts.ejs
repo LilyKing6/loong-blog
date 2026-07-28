@@ -10,7 +10,7 @@
       <p>No posts found.</p>
     <% } else { %>
       <% posts.forEach(function(p) { %>
-        <div class="post-card">
+        <div class="post-card fade-in">
           <h3><a href="/post?slug=<%= encodeURIComponent(p.slug) %>"><%= p.title %></a></h3>
           <div class="post-meta">
             <span><%= formatDate(p.publishedAt) %></span>
@@ -26,6 +26,14 @@
           <% } %>
         </div>
       <% }) %>
+    <% } %>
+    <% if (posts.length > 10) { %>
+    <div class="pagination">
+      <% const perPage = 10; const totalPages = Math.ceil(posts.length / perPage); %>
+      <% for (let i = 1; i <= totalPages; i++) { %>
+        <a href="?page=<%= i %>" class="<%= i === 1 ? 'active' : '' %>"><%= i %></a>
+      <% } %>
+    </div>
     <% } %>
   </div>
 <% } %>
