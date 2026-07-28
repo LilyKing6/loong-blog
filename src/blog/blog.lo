@@ -92,7 +92,7 @@ fn postWithStatus(post: Post, status: string) -> Post {
   Post(post.id, post.slug, post.title, post.body, status, status.publishedAtForStatus(), post.categoryId, post.tagIds)
 }
 
-fn postListRoute(ctx: RouteContext) -> HttpResp {
+impure fn postListRoute(ctx: RouteContext) -> HttpResp {
   (
     status = ctx.requestField("status") ?? "all";
     posts = listPostsByStatus(status);
@@ -107,7 +107,7 @@ fn postListRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postDetailRoute(ctx: RouteContext) -> HttpResp {
+impure fn postDetailRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.requestedSlug();
     if (getPostBySlug(slug) as Post post) {
@@ -118,7 +118,7 @@ fn postDetailRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postCreateRoute(ctx: RouteContext) -> HttpResp {
+impure fn postCreateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -160,7 +160,7 @@ fn postCreateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postUpdateRoute(ctx: RouteContext) -> HttpResp {
+impure fn postUpdateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -201,7 +201,7 @@ fn postUpdateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postStatusRoute(ctx: RouteContext, nextStatus: string) -> HttpResp {
+impure fn postStatusRoute(ctx: RouteContext, nextStatus: string) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -231,7 +231,7 @@ fn postStatusRoute(ctx: RouteContext, nextStatus: string) -> HttpResp {
   )
 }
 
-fn postDeleteRoute(ctx: RouteContext) -> HttpResp {
+impure fn postDeleteRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -257,7 +257,7 @@ fn postDeleteRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postSetCategoryRoute(ctx: RouteContext) -> HttpResp {
+impure fn postSetCategoryRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -285,7 +285,7 @@ fn postSetCategoryRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postAddTagRoute(ctx: RouteContext) -> HttpResp {
+impure fn postAddTagRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -314,7 +314,7 @@ fn postAddTagRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postRemoveTagRoute(ctx: RouteContext) -> HttpResp {
+impure fn postRemoveTagRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -343,7 +343,7 @@ fn postRemoveTagRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postsByCategoryRoute(ctx: RouteContext) -> HttpResp {
+impure fn postsByCategoryRoute(ctx: RouteContext) -> HttpResp {
   categorySlug = ctx.queryField("slug") ?? "";
   if (getCategoryBySlug(categorySlug) as Category cat) {
     filtered = listPostsByStatus("all").filter([cat] (post: Post) -> bool { post.categoryId == cat.id });
@@ -359,7 +359,7 @@ fn postsByCategoryRoute(ctx: RouteContext) -> HttpResp {
   }
 }
 
-fn postsByTagRoute(ctx: RouteContext) -> HttpResp {
+impure fn postsByTagRoute(ctx: RouteContext) -> HttpResp {
   tagSlug = ctx.queryField("slug") ?? "";
   if (getTagBySlug(tagSlug) as Tag tag) {
     filtered = listPostsByStatus("all").filter([tag] (post: Post) -> bool { post.tagIds.contains(tag.id) });
@@ -375,7 +375,7 @@ fn postsByTagRoute(ctx: RouteContext) -> HttpResp {
   }
 }
 
-fn blogHealth(ctx: RouteContext) -> HttpResp {
+impure fn blogHealth(ctx: RouteContext) -> HttpResp {
   jsonOk(
     jsonObject(
       jsonField("status", "ok") ::
@@ -384,11 +384,11 @@ fn blogHealth(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn blogHome(ctx: RouteContext) -> HttpResp {
+impure fn blogHome(ctx: RouteContext) -> HttpResp {
   postListRoute(ctx)
 }
 
-fn postCommentsRoute(ctx: RouteContext) -> HttpResp {
+impure fn postCommentsRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.queryField("slug") ?? "";
     if (getPostBySlug(slug) as Post post) {
@@ -406,7 +406,7 @@ fn postCommentsRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn commentCreateRoute(ctx: RouteContext) -> HttpResp {
+impure fn commentCreateRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.queryField("slug") ?? "";
     authorName = ctx.requestField("authorName") ?? "Anonymous";
@@ -429,7 +429,7 @@ fn commentCreateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn commentDeleteRoute(ctx: RouteContext) -> HttpResp {
+impure fn commentDeleteRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -456,7 +456,7 @@ fn commentDeleteRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postSearchRoute(ctx: RouteContext) -> HttpResp {
+impure fn postSearchRoute(ctx: RouteContext) -> HttpResp {
   (
     q = ctx.queryField("q") ?? "";
     if (q.isEmpty()) {
@@ -476,7 +476,7 @@ fn postSearchRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postRevisionsRoute(ctx: RouteContext) -> HttpResp {
+impure fn postRevisionsRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.queryField("slug") ?? "";
     if (getPostBySlug(slug) as Post p) {
@@ -494,7 +494,7 @@ fn postRevisionsRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn postRevisionRoute(ctx: RouteContext) -> HttpResp {
+impure fn postRevisionRoute(ctx: RouteContext) -> HttpResp {
   (
     idStr = ctx.queryField("id") ?? "";
     id = txtIntParser()(idStr) ?? 0;
@@ -512,7 +512,7 @@ fn postRevisionRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn categoryListRoute(ctx: RouteContext) -> HttpResp {
+impure fn categoryListRoute(ctx: RouteContext) -> HttpResp {
   (
     cats = listCategories();
     jsonOk(
@@ -524,7 +524,7 @@ fn categoryListRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn categoryDetailRoute(ctx: RouteContext) -> HttpResp {
+impure fn categoryDetailRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.queryField("slug") ?? "";
     if (getCategoryBySlug(slug) as Category cat) {
@@ -535,7 +535,7 @@ fn categoryDetailRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn categoryCreateRoute(ctx: RouteContext) -> HttpResp {
+impure fn categoryCreateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -566,7 +566,7 @@ fn categoryCreateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn categoryUpdateRoute(ctx: RouteContext) -> HttpResp {
+impure fn categoryUpdateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -594,7 +594,7 @@ fn categoryUpdateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn categoryDeleteRoute(ctx: RouteContext) -> HttpResp {
+impure fn categoryDeleteRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -620,7 +620,7 @@ fn categoryDeleteRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn tagListRoute(ctx: RouteContext) -> HttpResp {
+impure fn tagListRoute(ctx: RouteContext) -> HttpResp {
   (
     tags = listTags();
     jsonOk(
@@ -632,7 +632,7 @@ fn tagListRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn tagDetailRoute(ctx: RouteContext) -> HttpResp {
+impure fn tagDetailRoute(ctx: RouteContext) -> HttpResp {
   (
     slug = ctx.queryField("slug") ?? "";
     if (getTagBySlug(slug) as Tag tag) {
@@ -643,7 +643,7 @@ fn tagDetailRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn tagCreateRoute(ctx: RouteContext) -> HttpResp {
+impure fn tagCreateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -674,7 +674,7 @@ fn tagCreateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn tagUpdateRoute(ctx: RouteContext) -> HttpResp {
+impure fn tagUpdateRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -702,7 +702,7 @@ fn tagUpdateRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn tagDeleteRoute(ctx: RouteContext) -> HttpResp {
+impure fn tagDeleteRoute(ctx: RouteContext) -> HttpResp {
   (
     auth = ctx.requirePermission("blog.write");
     if (auth as HttpResp resp) {
@@ -728,39 +728,39 @@ fn tagDeleteRoute(ctx: RouteContext) -> HttpResp {
   )
 }
 
-fn blogRoutes() -> List<HttpRoute> {
+impure fn blogRoutes() -> List<HttpRoute> {
   routeGroup(
     "/api/blog",
-    HttpRoute(HttpMethod.Get, "/health", [](ctx: RouteContext) -> HttpResp { blogHealth(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/posts",  [](ctx: RouteContext) -> HttpResp { postListRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/post",  [](ctx: RouteContext) -> HttpResp { postDetailRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/posts",  [](ctx: RouteContext) -> HttpResp { postCreateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Put, "/posts",  [](ctx: RouteContext) -> HttpResp { postUpdateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Patch, "/posts",  [](ctx: RouteContext) -> HttpResp { postUpdateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/posts/publish",  [](ctx: RouteContext) -> HttpResp { postStatusRoute(ctx, "published") }) ::
-    HttpRoute(HttpMethod.Post, "/posts/draft",  [](ctx: RouteContext) -> HttpResp { postStatusRoute(ctx, "draft") }) ::
-    HttpRoute(HttpMethod.Delete, "/posts",  [](ctx: RouteContext) -> HttpResp { postDeleteRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryListRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryCreateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/category",  [](ctx: RouteContext) -> HttpResp { categoryDetailRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Put, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryUpdateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Delete, "/categories",  [](ctx: RouteContext) -> HttpResp { categoryDeleteRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/tags",  [](ctx: RouteContext) -> HttpResp { tagListRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/tags",  [](ctx: RouteContext) -> HttpResp { tagCreateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/tag",  [](ctx: RouteContext) -> HttpResp { tagDetailRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Put, "/tags",  [](ctx: RouteContext) -> HttpResp { tagUpdateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Delete, "/tags",  [](ctx: RouteContext) -> HttpResp { tagDeleteRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/posts/category",  [](ctx: RouteContext) -> HttpResp { postSetCategoryRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/posts/tag",  [](ctx: RouteContext) -> HttpResp { postAddTagRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/posts/tag/remove",  [](ctx: RouteContext) -> HttpResp { postRemoveTagRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/posts/by-category",  [](ctx: RouteContext) -> HttpResp { postsByCategoryRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/posts/by-tag",  [](ctx: RouteContext) -> HttpResp { postsByTagRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/posts/comments",  [](ctx: RouteContext) -> HttpResp { postCommentsRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Post, "/posts/comments",  [](ctx: RouteContext) -> HttpResp { commentCreateRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Delete, "/posts/comments",  [](ctx: RouteContext) -> HttpResp { commentDeleteRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/posts/search",  [](ctx: RouteContext) -> HttpResp { postSearchRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/posts/revisions",  [](ctx: RouteContext) -> HttpResp { postRevisionsRoute(ctx) }) ::
-    HttpRoute(HttpMethod.Get, "/posts/revision",  [](ctx: RouteContext) -> HttpResp { postRevisionRoute(ctx) })
+    HttpRoute(HttpMethod.Get, "/health", impure [](ctx: RouteContext) -> HttpResp { blogHealth(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts",  impure [](ctx: RouteContext) -> HttpResp { postListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/post",  impure [](ctx: RouteContext) -> HttpResp { postDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts",  impure [](ctx: RouteContext) -> HttpResp { postCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/posts",  impure [](ctx: RouteContext) -> HttpResp { postUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Patch, "/posts",  impure [](ctx: RouteContext) -> HttpResp { postUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/publish",  impure [](ctx: RouteContext) -> HttpResp { postStatusRoute(ctx, "published") }) ::
+    HttpRoute(HttpMethod.Post, "/posts/draft",  impure [](ctx: RouteContext) -> HttpResp { postStatusRoute(ctx, "draft") }) ::
+    HttpRoute(HttpMethod.Delete, "/posts",  impure [](ctx: RouteContext) -> HttpResp { postDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/categories",  impure [](ctx: RouteContext) -> HttpResp { categoryListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/categories",  impure [](ctx: RouteContext) -> HttpResp { categoryCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/category",  impure [](ctx: RouteContext) -> HttpResp { categoryDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/categories",  impure [](ctx: RouteContext) -> HttpResp { categoryUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/categories",  impure [](ctx: RouteContext) -> HttpResp { categoryDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/tags",  impure [](ctx: RouteContext) -> HttpResp { tagListRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/tags",  impure [](ctx: RouteContext) -> HttpResp { tagCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/tag",  impure [](ctx: RouteContext) -> HttpResp { tagDetailRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Put, "/tags",  impure [](ctx: RouteContext) -> HttpResp { tagUpdateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/tags",  impure [](ctx: RouteContext) -> HttpResp { tagDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/category",  impure [](ctx: RouteContext) -> HttpResp { postSetCategoryRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/tag",  impure [](ctx: RouteContext) -> HttpResp { postAddTagRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/tag/remove",  impure [](ctx: RouteContext) -> HttpResp { postRemoveTagRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/by-category",  impure [](ctx: RouteContext) -> HttpResp { postsByCategoryRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/by-tag",  impure [](ctx: RouteContext) -> HttpResp { postsByTagRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/comments",  impure [](ctx: RouteContext) -> HttpResp { postCommentsRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Post, "/posts/comments",  impure [](ctx: RouteContext) -> HttpResp { commentCreateRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Delete, "/posts/comments",  impure [](ctx: RouteContext) -> HttpResp { commentDeleteRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/search",  impure [](ctx: RouteContext) -> HttpResp { postSearchRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/revisions",  impure [](ctx: RouteContext) -> HttpResp { postRevisionsRoute(ctx) }) ::
+    HttpRoute(HttpMethod.Get, "/posts/revision",  impure [](ctx: RouteContext) -> HttpResp { postRevisionRoute(ctx) })
   )
 }
 

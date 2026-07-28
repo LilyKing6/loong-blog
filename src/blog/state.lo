@@ -1,5 +1,9 @@
 import std.core.list using;
 import std.core.option using;
+import std.io.file using;
+import std.io.path using;
+import std.sys.rt using;
+import std.format.json using;
 import web.json using;
 import shared.content using;
 
@@ -14,7 +18,9 @@ struct BlogState {
   nextCommentId: int
 }
 
-fn initBlogState() -> BlogState {
+// --- Default seed data ---
+
+fn defaultBlogState() -> BlogState {
   BlogState(
     Post(1, "hello-loong", "Hello Loong", "# Hello Loong\n\nWelcome to the Loong Web Framework! This is the first post on our blog, built entirely with Loong.\n\n## What is Loong?\n\nLoong is a systems programming language with a focus on simplicity and safety. The web framework extends this philosophy to server-side development.\n\n## Why use it?\n\n- Zero external dependencies\n- Built-in HTTP server\n- Type-safe routing\n- First-class JSON support\n\n## Getting started\n\n```loong\ncli(\n  cliCmd(\"serve\", serveBlog, \"Serve blog\")\n)\n```\n\nThat's it! Your blog is running.", "published", "2026-05-05T00:00:00Z", 1, 1 :: 2 :: List<int>()) ::
     Post(2, "framework-notes", "Framework Architecture Notes", "# Framework Architecture\n\nNotes on how the Loong web framework is structured.\n\n## Library packages\n\nThe framework is split into two `.lpkg` library packages:\n\n- `loong-web`: HTTP server, routing, middleware, JSON, static files, auth\n- `loong-shared`: Shared data models (User, Post, Comment, DocPage, etc.)\n\n## Visibility\n\nAll exported APIs use explicit `public` visibility (language spec §14.5).\n\n## Build\n\n```bash\nloc build --manifest loong.toml --target blog\n```", "draft", "", 1, 3 :: List<int>()) ::
@@ -28,7 +34,7 @@ fn initBlogState() -> BlogState {
     Tag(3, "tutorial", "Tutorial"),
     Comment(1, 1, "Great first post! Looking forward to more.", "Alice", 0, "2026-05-06T10:00:00Z", "published") ::
     Comment(2, 1, "Thanks for the introduction. How do I install Loong?", "Bob", 0, "2026-05-07T14:30:00Z", "published") ::
-    Comment(3, 3, "The route group example was really helpful.", "Charlie", 0, "2026-06-11T09:00:00Z", "published"),
+    Comment(3, 3, "The route group example was really helpful.", "Charlie", 0, "2026-06-11T09:00:00Z", "published") :: List<Comment>(),
     6,
     3,
     4,
@@ -36,114 +42,303 @@ fn initBlogState() -> BlogState {
   )
 }
 
-fn allPosts() -> List<Post> {
-  Post(1, "hello-loong", "Hello Loong", "# Hello Loong\n\nWelcome to the Loong Web Framework! This is the first post on our blog, built entirely with Loong.\n\n## What is Loong?\n\nLoong is a systems programming language with a focus on simplicity and safety. The web framework extends this philosophy to server-side development.\n\n## Why use it?\n\n- Zero external dependencies\n- Built-in HTTP server\n- Type-safe routing\n- First-class JSON support\n\n## Getting started\n\n```loong\ncli(\n  cliCmd(\"serve\", serveBlog, \"Serve blog\")\n)\n```\n\nThat's it! Your blog is running.", "published", "2026-05-05T00:00:00Z", 1, 1 :: 2 :: List<int>()) ::
-  Post(2, "framework-notes", "Framework Architecture Notes", "# Framework Architecture\n\nNotes on how the Loong web framework is structured.\n\n## Library packages\n\nThe framework is split into two `.lpkg` library packages:\n\n- `loong-web`: HTTP server, routing, middleware, JSON, static files, auth\n- `loong-shared`: Shared data models (User, Post, Comment, DocPage, etc.)\n\n## Visibility\n\nAll exported APIs use explicit `public` visibility (language spec §14.5).\n\n## Build\n\n```bash\nloc build --manifest loong.toml --target blog\n```", "draft", "", 1, 3 :: List<int>()) ::
-  Post(3, "getting-started-with-routes", "Getting Started with Routes", "# Getting Started with Routes\n\nLearn how to define routes in a Loong web application.\n\n## Basic routing\n\n```loong\nfn myRoutes() -> List<HttpRoute> {\n  routeGroup(\n    \"/api\",\n    HttpRoute(HttpMethod.Get, \"/hello\", [](ctx) -> HttpResp {\n      jsonOk(jsonObject(jsonField(\"msg\", \"Hi!\")))\n    })\n  )\n}\n```\n\n## Route groups\n\nUse `routeGroup` to prefix multiple routes.\n\n## Middleware\n\nMiddleware runs before route handlers for auth, logging, CORS, etc.", "published", "2026-06-10T00:00:00Z", 1, 2 :: 3 :: List<int>()) ::
-  Post(4, "markdown-rendering", "Markdown Rendering in Loong", "# Markdown Rendering\n\nThe blog frontend renders Markdown to HTML using a lightweight regex-based renderer.\n\n## Supported syntax\n\n- Headers (h1-h3)\n- **Bold** and *italic*\n- `inline code` and code blocks\n- Lists (ordered and unordered)\n- Blockquotes\n- Horizontal rules\n\n## Editor preview\n\nThe admin editor provides real-time Markdown preview side-by-side with the editor.", "published", "2026-07-01T00:00:00Z", 1, 2 :: List<int>()) ::
-  Post(5, "deploying-with-docker", "Deploying with Docker", "# Deploying with Docker\n\nA guide to containerizing your Loong blog application.\n\n## Dockerfile\n\n```dockerfile\nFROM debian:bookworm-slim\nCOPY blog.lx /app/blog.lx\nCOPY site/ /app/site/\nWORKDIR /app\nCMD [\"./blog.lx\", \"serve\", \"-p\", \"8080\", \"-R\", \"site\"]\n```\n\n## docker-compose\n\n```yaml\nservices:\n  blog:\n    build: .\n    ports:\n      - \"8080:8080\"\n```", "draft", "", 2, List<int>())
+// --- JSON helpers ---
+
+fn jsonAsInt(v: JsonValue) -> int {
+  (if (v as float f) { f.int() } else { 0 })
 }
 
-fn allCategories() -> List<Category> {
-  Category(1, "tech", "Technology") ::
-  Category(2, "life", "Lifestyle")
+fn jsonAsString(v: JsonValue) -> string {
+  (if (v as string s) { s } else { "" })
 }
 
-fn allTags() -> List<Tag> {
-  Tag(1, "loong", "Loong") ::
-  Tag(2, "web", "Web Framework") ::
-  Tag(3, "tutorial", "Tutorial")
+fn jsonAsPost(v: JsonValue) -> Post {
+  (
+    if (v as JsonObject obj) {
+      (
+        id = jsonAsInt(obj.getField("id") ?? JsonValue(0));
+        slug = jsonAsString(obj.getField("slug") ?? JsonValue(""));
+        title = jsonAsString(obj.getField("title") ?? JsonValue(""));
+        body = jsonAsString(obj.getField("body") ?? JsonValue(""));
+        status = jsonAsString(obj.getField("status") ?? JsonValue(""));
+        publishedAt = jsonAsString(obj.getField("publishedAt") ?? JsonValue(""));
+        categoryId = jsonAsInt(obj.getField("categoryId") ?? JsonValue(0));
+        tagIdsVal = obj.getField("tagIds") ?? JsonValue(JsonNull());
+        tagIds = (if (tagIdsVal as JsonArray arr) { arr.entries.map([](tv: JsonValue) -> int { jsonAsInt(tv) }) } else { List<int>() });
+        Post(id, slug, title, body, status, publishedAt, categoryId, tagIds)
+      )
+    } else {
+      (Post(0, "", "", "", "", "", 0, List<int>()))
+    }
+  )
 }
 
-fn listPostsByStatus(status: string) -> List<Post> {
+fn jsonAsCategory(v: JsonValue) -> Category {
+  (
+    if (v as JsonObject obj) {
+      (Category(jsonAsInt(obj.getField("id") ?? JsonValue(0)), jsonAsString(obj.getField("slug") ?? JsonValue("")), jsonAsString(obj.getField("name") ?? JsonValue(""))))
+    } else {
+      (Category(0, "", ""))
+    }
+  )
+}
+
+fn jsonAsTag(v: JsonValue) -> Tag {
+  (
+    if (v as JsonObject obj) {
+      (Tag(jsonAsInt(obj.getField("id") ?? JsonValue(0)), jsonAsString(obj.getField("slug") ?? JsonValue("")), jsonAsString(obj.getField("name") ?? JsonValue(""))))
+    } else {
+      (Tag(0, "", ""))
+    }
+  )
+}
+
+fn jsonAsComment(v: JsonValue) -> Comment {
+  (
+    if (v as JsonObject obj) {
+      (
+        Comment(
+          jsonAsInt(obj.getField("id") ?? JsonValue(0)),
+          jsonAsInt(obj.getField("postId") ?? JsonValue(0)),
+          jsonAsString(obj.getField("body") ?? JsonValue("")),
+          jsonAsString(obj.getField("authorName") ?? JsonValue("")),
+          jsonAsInt(obj.getField("parentId") ?? JsonValue(0)),
+          jsonAsString(obj.getField("createdAt") ?? JsonValue("")),
+          jsonAsString(obj.getField("status") ?? JsonValue(""))
+        )
+      )
+    } else {
+      (Comment(0, 0, "", "", 0, "", ""))
+    }
+  )
+}
+
+
+fn postJson(post: Post) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(post.id)) ::
+    jsonField("slug", post.slug) ::
+    jsonField("title", post.title) ::
+    jsonField("body", post.body) ::
+    jsonField("status", post.status) ::
+    jsonField("publishedAt", post.publishedAt) ::
+    jsonField("categoryId", JsonValue(post.categoryId)) ::
+    jsonField("tagIds", jsonArray(post.tagIds.map([](tid: int) JsonValue(tid)))) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn categoryJson(cat: Category) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(cat.id)) ::
+    jsonField("slug", cat.slug) ::
+    jsonField("name", cat.name) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn tagJson(tag: Tag) -> JsonValue {
+  jsonObject(
+    jsonField("id", JsonValue(tag.id)) ::
+    jsonField("slug", tag.slug) ::
+    jsonField("name", tag.name) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+fn stateJson(state: BlogState) -> JsonValue {
+  jsonObject(
+    jsonField("posts", jsonArray(state.posts.map([](p: Post) postJson(p)))) ::
+    jsonField("categories", jsonArray(state.categories.map([](c: Category) categoryJson(c)))) ::
+    jsonField("tags", jsonArray(state.tags.map([](t: Tag) tagJson(t)))) ::
+    jsonField("comments", jsonArray(state.comments.map([](c: Comment) commentJson(c)))) ::
+    jsonField("nextPostId", JsonValue(state.nextPostId)) ::
+    jsonField("nextCategoryId", JsonValue(state.nextCategoryId)) ::
+    jsonField("nextTagId", JsonValue(state.nextTagId)) ::
+    jsonField("nextCommentId", JsonValue(state.nextCommentId)) ::
+    List<Tuple<string, JsonValue>>()
+  )
+}
+
+// --- File persistence ---
+
+impure fn dataFilePath() -> Path {
+  pathAbsolute(pathRel() / "data" / "blog-state.json")
+}
+
+impure fn loadState() -> BlogState {
+  p = dataFilePath();
+  if (fileExists(p)) {
+    result = fileRead(p).failOnError();
+    parsed = parseJson(result).failOnError();
+    if (parsed as JsonObject obj) {
+      (
+        postsVal = obj.getField("posts") ?? JsonValue(JsonNull());
+        catsVal = obj.getField("categories") ?? JsonValue(JsonNull());
+        tagsVal = obj.getField("tags") ?? JsonValue(JsonNull());
+        commentsVal = obj.getField("comments") ?? JsonValue(JsonNull());
+        posts = (if (postsVal as JsonArray pa) { pa.entries.map([](pv: JsonValue) -> Post { jsonAsPost(pv) }) } else { defaultBlogState().posts });
+        categories = (if (catsVal as JsonArray ca) { ca.entries.map([](cv: JsonValue) -> Category { jsonAsCategory(cv) }) } else { defaultBlogState().categories });
+        tags = (if (tagsVal as JsonArray ta) { ta.entries.map([](tv: JsonValue) -> Tag { jsonAsTag(tv) }) } else { defaultBlogState().tags });
+        comments = (if (commentsVal as JsonArray cma) { cma.entries.map([](cv: JsonValue) -> Comment { jsonAsComment(cv) }) } else { defaultBlogState().comments });
+        nextPostId = jsonAsInt(obj.getField("nextPostId") ?? JsonValue(6));
+        nextCategoryId = jsonAsInt(obj.getField("nextCategoryId") ?? JsonValue(3));
+        nextTagId = jsonAsInt(obj.getField("nextTagId") ?? JsonValue(4));
+        nextCommentId = jsonAsInt(obj.getField("nextCommentId") ?? JsonValue(4));
+        BlogState(posts, categories, tags, comments, nextPostId, nextCategoryId, nextTagId, nextCommentId)
+      )
+    } else {
+      defaultBlogState()
+    }
+  } else {
+    defaultBlogState()
+  }
+}
+
+impure fn saveState(state: BlogState) -> Option<Error> {
+  p = dataFilePath();
+  dir = pathAbsolute(pathRel() / "data");
+  if (!fileDirExists(dir)) {
+    fileCreateDir(dir)
+  };
+  fileWrite(p, stateJson(state).string())
+}
+
+// --- State accessors ---
+
+impure fn allPosts() -> List<Post> {
+  loadState().posts
+}
+
+impure fn allCategories() -> List<Category> {
+  loadState().categories
+}
+
+impure fn allTags() -> List<Tag> {
+  loadState().tags
+}
+
+impure fn listPostsByStatus(status: string) -> List<Post> {
   allPosts().filter([status] (post: Post) -> bool { post.status == status })
 }
 
-fn getPostBySlug(slug: string) -> Option<Post> {
+impure fn getPostBySlug(slug: string) -> Option<Post> {
   allPosts().first([slug] (post: Post) -> bool { post.slug == slug })
 }
 
-fn createPost(post: Post) -> Post {
-  Post(3, post.slug, post.title, post.body, post.status, post.publishedAt, 0, List<int>())
+impure fn createPost(post: Post) -> Post {
+  state = loadState();
+  newPost = Post(state.nextPostId, post.slug, post.title, post.body, post.status, post.publishedAt, post.categoryId, post.tagIds);
+  saveState(BlogState(state.posts :: newPost :: List<Post>(), state.categories, state.tags, state.comments, state.nextPostId + 1, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+  newPost
 }
 
-fn updatePost(slug: string, post: Post) -> Option<Post> {
-  getPostBySlug(slug)
+impure fn updatePost(slug: string, post: Post) -> Option<Post> {
+  state = loadState();
+  newPosts = state.posts.map([slug, post] (p: Post) -> Post { if (p.slug == slug) { post } else { p } });
+  saveState(BlogState(newPosts, state.categories, state.tags, state.comments, state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+  Option(post)
 }
 
-fn deletePost(slug: string) -> Option<Post> {
-  getPostBySlug(slug)
+impure fn deletePost(slug: string) -> Option<Post> {
+  state = loadState();
+  if (state.posts.first([slug] (p: Post) -> bool { p.slug == slug }) as Post found) {
+    saveState(BlogState(state.posts.filter([slug] (p: Post) -> bool { p.slug != slug }), state.categories, state.tags, state.comments, state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+    Option(found)
+  } else {
+    None()
+  }
 }
 
-fn listCategories() -> List<Category> {
+impure fn listCategories() -> List<Category> {
   allCategories()
 }
 
-fn getCategoryBySlug(slug: string) -> Option<Category> {
+impure fn getCategoryBySlug(slug: string) -> Option<Category> {
   allCategories().first([slug] (cat: Category) -> bool { cat.slug == slug })
 }
 
-fn createCategory(slug: string, name: string) -> Category {
-  Category(3, slug, name)
+impure fn createCategory(slug: string, name: string) -> Category {
+  state = loadState();
+  cat = Category(state.nextCategoryId, slug, name);
+  saveState(BlogState(state.posts, state.categories :: cat :: List<Category>(), state.tags, state.comments, state.nextPostId, state.nextCategoryId + 1, state.nextTagId, state.nextCommentId));
+  cat
 }
 
-fn updateCategory(slug: string, newSlug: string, name: string) -> Option<Category> {
-  if (getCategoryBySlug(slug) as Category cat) {
-    Option(Category(cat.id, newSlug, name))
+impure fn updateCategory(slug: string, newSlug: string, name: string) -> Option<Category> {
+  state = loadState();
+  saveState(BlogState(state.posts, state.categories.map([slug, newSlug, name] (c: Category) -> Category { if (c.slug == slug) { Category(c.id, newSlug, name) } else { c } }), state.tags, state.comments, state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+  Option(Category(0, newSlug, name))
+}
+
+impure fn deleteCategory(slug: string) -> Option<Category> {
+  state = loadState();
+  if (state.categories.first([slug] (c: Category) -> bool { c.slug == slug }) as Category found) {
+    saveState(BlogState(state.posts, state.categories.filter([slug] (c: Category) -> bool { c.slug != slug }), state.tags, state.comments, state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+    Option(found)
   } else {
     None()
   }
 }
 
-fn deleteCategory(slug: string) -> Option<Category> {
-  getCategoryBySlug(slug)
-}
-
-fn listTags() -> List<Tag> {
+impure fn listTags() -> List<Tag> {
   allTags()
 }
 
-fn getTagBySlug(slug: string) -> Option<Tag> {
+impure fn getTagBySlug(slug: string) -> Option<Tag> {
   allTags().first([slug] (tag: Tag) -> bool { tag.slug == slug })
 }
 
-fn createTag(slug: string, name: string) -> Tag {
-  Tag(4, slug, name)
+impure fn createTag(slug: string, name: string) -> Tag {
+  state = loadState();
+  tag = Tag(state.nextTagId, slug, name);
+  saveState(BlogState(state.posts, state.categories, state.tags :: tag :: List<Tag>(), state.comments, state.nextPostId, state.nextCategoryId, state.nextTagId + 1, state.nextCommentId));
+  tag
 }
 
-fn updateTag(slug: string, newSlug: string, name: string) -> Option<Tag> {
-  if (getTagBySlug(slug) as Tag tag) {
-    Option(Tag(tag.id, newSlug, name))
+impure fn updateTag(slug: string, newSlug: string, name: string) -> Option<Tag> {
+  state = loadState();
+  saveState(BlogState(state.posts, state.categories, state.tags.map([slug, newSlug, name] (t: Tag) -> Tag { if (t.slug == slug) { Tag(t.id, newSlug, name) } else { t } }), state.comments, state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+  Option(Tag(0, newSlug, name))
+}
+
+impure fn deleteTag(slug: string) -> Option<Tag> {
+  state = loadState();
+  if (state.tags.first([slug] (t: Tag) -> bool { t.slug == slug }) as Tag found) {
+    saveState(BlogState(state.posts, state.categories, state.tags.filter([slug] (t: Tag) -> bool { t.slug != slug }), state.comments, state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+    Option(found)
   } else {
     None()
   }
 }
 
-fn deleteTag(slug: string) -> Option<Tag> {
-  getTagBySlug(slug)
+impure fn allComments() -> List<Comment> {
+  loadState().comments
 }
 
-fn allComments() -> List<Comment> {
-  Comment(1, 1, "Great first post! Looking forward to more.", "Alice", 0, "2026-05-06T10:00:00Z", "published") ::
-  Comment(2, 1, "Thanks for the introduction. How do I install Loong?", "Bob", 0, "2026-05-07T14:30:00Z", "published") ::
-  Comment(3, 3, "The route group example was really helpful.", "Charlie", 0, "2026-06-11T09:00:00Z", "published") :: List<Comment>()
-}
-
-fn getComment(id: int) -> Option<Comment> {
+impure fn getComment(id: int) -> Option<Comment> {
   allComments().first([id] (c: Comment) -> bool { c.id == id })
 }
 
-fn getCommentsForPost(postId: int) -> List<Comment> {
+impure fn getCommentsForPost(postId: int) -> List<Comment> {
   allComments().filter([postId] (c: Comment) -> bool { c.postId == postId })
 }
 
-fn createComment(postId: int, authorName: string, body: string, parentId: int, status: string) -> Comment {
-  cid = initBlogState().nextCommentId;
-  Comment(cid, postId, body, authorName, parentId, "", status)
+impure fn createComment(postId: int, authorName: string, body: string, parentId: int, status: string) -> Comment {
+  state = loadState();
+  c = Comment(state.nextCommentId, postId, body, authorName, parentId, "", status);
+  saveState(BlogState(state.posts, state.categories, state.tags, state.comments :: c :: List<Comment>(), state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId + 1));
+  c
 }
 
-fn deleteComment(id: int) -> Option<Comment> {
-  getComment(id)
+impure fn deleteComment(id: int) -> Option<Comment> {
+  state = loadState();
+  if (state.comments.first([id] (c: Comment) -> bool { c.id == id }) as Comment found) {
+    saveState(BlogState(state.posts, state.categories, state.tags, state.comments.filter([id] (c: Comment) -> bool { c.id != id }), state.nextPostId, state.nextCategoryId, state.nextTagId, state.nextCommentId));
+    Option(found)
+  } else {
+    None()
+  }
 }
 
 fn commentJson(c: Comment) -> JsonValue {
@@ -154,7 +349,8 @@ fn commentJson(c: Comment) -> JsonValue {
     jsonField("authorName", c.authorName) ::
     jsonField("parentId", JsonValue(c.parentId)) ::
     jsonField("createdAt", c.createdAt) ::
-    jsonField("status", c.status)
+    jsonField("status", c.status) ::
+    List<Tuple<string, JsonValue>>()
   )
 }
 
@@ -166,11 +362,11 @@ fn createRevision(id: int, postId: int, body: string) -> PostRevision {
   PostRevision(id, postId, body)
 }
 
-fn listRevisions(postId: int) -> List<PostRevision> {
+impure fn listRevisions(postId: int) -> List<PostRevision> {
   List<PostRevision>()
 }
 
-fn getRevision(id: int) -> Option<PostRevision> {
+impure fn getRevision(id: int) -> Option<PostRevision> {
   None()
 }
 
@@ -178,7 +374,8 @@ fn revisionJson(r: PostRevision) -> JsonValue {
   jsonObject(
     jsonField("id", JsonValue(r.id)) ::
     jsonField("postId", JsonValue(r.postId)) ::
-    jsonField("body", r.body)
+    jsonField("body", r.body) ::
+    List<Tuple<string, JsonValue>>()
   )
 }
 
