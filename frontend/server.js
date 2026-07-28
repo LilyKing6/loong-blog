@@ -498,6 +498,29 @@ app.get('/api-docs', (req, res) => {
   });
 });
 
+
+// Upload proxy (for admin editor image uploads)
+app.post('/api/uploads', requireAdmin, async (req, res) => {
+  const token = req.cookies.loong_session;
+  const filename = req.query.filename || 'upload.bin';
+  try {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      const body = Buffer.concat(chunks).toString();
+      const resp = await fetch(BLOG_API_URL.replace('/api/blog', '') + '/api/uploads?filename=' + encodeURIComponent(filename), {
+        method: 'POST',
+        headers: { 'Content-Type': req.headers['content-type'] || 'application/octet-stream', Cookie: 'loong_session=' + token },
+        body: body
+      });
+      const data = await resp.json();
+      res.json(data);
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ===== 404 =====
 
 app.use((req, res) => {

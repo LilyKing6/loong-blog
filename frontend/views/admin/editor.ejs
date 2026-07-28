@@ -18,6 +18,13 @@
     <% }) %>
   </select>
   <label>Body (Markdown)</label>
+  <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+    <label class="product_btn ghost" style="cursor:pointer;display:inline-block;padding:6px 14px;font-size:13px;margin:0">
+      📎 Upload Image
+      <input type="file" id="image-upload" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+    </label>
+    <span id="upload-status" style="font-size:12px;color:#8a9e8a"></span>
+  </div>
   <div class="editor-container">
     <div class="editor-pane">
       <h4>Editor</h4>
@@ -34,6 +41,33 @@
   </div>
 </form>
 <script>
+async function handleImageUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('upload-status');
+  status.textContent = 'Uploading...';
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/uploads?filename=' + encodeURIComponent(file.name), {
+      method: 'POST',
+      body: file
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const textarea = document.getElementById('editor-body');
+    const markdown = '\n![](' + data.url + ')\n';
+    const pos = textarea.selectionStart;
+    textarea.value = textarea.value.substring(0, pos) + markdown + textarea.value.substring(pos);
+    textarea.selectionStart = textarea.selectionEnd = pos + markdown.length;
+    renderPreview();
+    status.textContent = 'Uploaded: ' + data.url;
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+  }
+  input.value = '';
+}
+
 function renderPreview() {
   const md = document.getElementById('editor-body').value;
   const preview = document.getElementById('editor-preview');
