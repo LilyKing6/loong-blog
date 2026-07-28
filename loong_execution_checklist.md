@@ -137,5 +137,5 @@ curl -i -X POST http://127.0.0.1:18105/api/blog/posts -d 'title=Hack'
 - HTTP 层已读取 `Content-Length` 对应 body，但尚未支持 chunked transfer、multipart 解析和上传落盘。
 - session/auth 当前是演示级 cookie token，不包含密码校验、签名、过期时间或持久化 session store。
 - 博客数据在进程内存中持久化，重启服务后重置为初始化状态。
-- `urlDecode` 目前只处理 `+` 到空格，百分号转义解码待后续补齐。
+- ~~`urlDecode` 目前只处理 `+` 到空格，百分号转义解码待后续补齐。~~ ✅ 已修复：完整 percent-encoding 解码（%XX + 大小写 hex）
 - category/tag CRUD 在当前进程内持久化，重启服务后重置。

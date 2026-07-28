@@ -74,3 +74,13 @@ path 依赖消费它们。
 - API 文档：/api-docs 页面，覆盖全部 50 个端点（blog 30 + docs 20），含请求/响应示例
 - 性能缓存：内存 TTL 缓存（60s），缓存 categories/tags/versions/nav 等不常变数据，写操作自动失效
 - Docker、示例数据、错误页增强已在 M6 完成
+
+# urlDecode 百分号解码修复
+
+2026-07-28：修复 web.form.urlDecode，从简单的 `+` → 空格替换升级为完整的 URL percent-encoding 解码：
+- 新增 hexCharToInt 辅助函数，支持 0-9/a-f/A-F 大小写 hex 数字
+- 新增 urlDecodeHelper 递归函数，逐字符处理 %XX 转义序列
+- 已推送到 loong-server 仓库
+
+注：文件持久化方案（BlogState → JSON 文件）因 Loong 的 HttpRoute.handler 类型为纯函数 `fn(RouteContext) -> HttpResp`，
+不支持 impure 函数指针而暂时搁置。需要框架层将 handler 类型改为 `action` 才能实现，属于 loong-server 的后续改进。
