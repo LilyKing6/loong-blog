@@ -195,6 +195,35 @@ code { font-family: var(--font-mono); }
 .fade-in { animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+
+/* === Reading progress bar === */
+.reading-progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); width: 0; z-index: 200; transition: width .1s; }
+
+/* === Post TOC === */
+.post-detail-with-toc { display: flex; gap: 32px; }
+.post-toc { width: 200px; flex-shrink: 0; position: sticky; top: 80px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; }
+.post-toc h4 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-weight: 600; }
+.post-toc ul { list-style: none; padding: 0; }
+.post-toc li { padding: 4px 0; }
+.post-toc .toc-level-1 { padding-left: 0; font-weight: 600; }
+.post-toc .toc-level-2 { padding-left: 16px; }
+.post-toc .toc-level-3 { padding-left: 32px; font-size: 13px; }
+.post-toc a { color: var(--text-dim); text-decoration: none; font-size: 14px; transition: color .15s; }
+.post-toc a:hover { color: var(--accent); }
+.post-detail-with-toc .post-detail { flex: 1; min-width: 0; }
+
+/* === Post body images === */
+.post-body img { max-width: 100%; border-radius: var(--radius); margin: 16px 0; border: 1px solid var(--border); }
+.post-body a { word-break: break-word; }
+
+/* === Comment pagination inherits .pagination === */
+
+/* === Mobile TOC hide === */
+@media (max-width: 900px) {
+  .post-detail-with-toc { flex-direction: column; }
+  .post-toc { display: none; }
+}
+
 /* === Responsive === */
 @media (max-width: 700px) {
   .content-layout { flex-direction: column; }

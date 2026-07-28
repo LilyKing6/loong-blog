@@ -5,45 +5,85 @@
     <a href="/posts">← All Posts</a>
   </div>
 <% } else { %>
-  <div class="post-detail">
-    <a class="back-link" href="/posts">← All Posts</a>
-    <h1><%= post.title %></h1>
-    <div class="post-meta">
-      <span><%= formatDate(post.publishedAt) %></span>
-      <span><%= post.status %></span>
-      <% if (categoryName) { %><span><%= categoryName %></span><% } %>
-    </div>
-    <% if (post.tags && post.tags.length > 0) { %>
-      <div class="post-tags" style="margin-bottom:24px">
-        <% post.tags.forEach(function(t) { %>
-          <a class="tag" href="/posts?tag=<%= encodeURIComponent(t.slug) %>"><%= t.name %></a>
+  <%
+    const toc = extractTOC(post.body || '');
+    const commentsPerPage = 5;
+    const commentPage = parseInt(req_query_page) || 1;
+    const totalCommentPages = Math.ceil(comments.length / commentsPerPage);
+    const pagedComments = comments.slice((commentPage - 1) * commentsPerPage, commentPage * commentsPerPage);
+  %>
+  <div class="reading-progress" id="reading-progress"></div>
+
+  <div class="post-detail-with-toc">
+    <% if (toc.length > 2) { %>
+    <aside class="post-toc" id="post-toc">
+      <h4>Table of Contents</h4>
+      <ul>
+        <% toc.forEach(function(h) { %>
+          <li class="toc-level-<%= h.level %>"><a href="#toc-<%= encodeURIComponent(h.text) %>"><%= h.text %></a></li>
         <% }) %>
-      </div>
+      </ul>
+    </aside>
     <% } %>
-    <div class="post-body">
-      <%- renderMarkdown(post.body) %>
-    </div>
-
-    <div class="comment-section">
-      <h3>Comments (<%= comments.length %>)</h3>
-      <% if (comments.length === 0) { %>
-        <p style="color:#8a9e8a">No comments yet. Be the first!</p>
-      <% } else { %>
-        <% comments.forEach(function(c) { %>
-          <div class="comment-card">
-            <div class="comment-author"><%= c.authorName || 'Anonymous' %></div>
-            <div class="comment-date"><%= formatDate(c.createdAt) %></div>
-            <div class="comment-body"><%= c.body %></div>
-          </div>
-        <% }) %>
+    <div class="post-detail">
+      <a class="back-link" href="/posts">← All Posts</a>
+      <h1><%= post.title %></h1>
+      <div class="post-meta">
+        <span><%= formatDate(post.publishedAt) %></span>
+        <span><%= post.status %></span>
+        <% if (categoryName) { %><span><%= categoryName %></span><% } %>
+      </div>
+      <% if (post.tags && post.tags.length > 0) { %>
+        <div class="post-tags" style="margin-bottom:24px">
+          <% post.tags.forEach(function(t) { %>
+            <a class="tag" href="/posts?tag=<%= encodeURIComponent(t.slug) %>"><%= t.name %></a>
+          <% }) %>
+        </div>
       <% } %>
+      <div class="post-body">
+        <%- renderMarkdown(post.body) %>
+      </div>
 
-      <form class="comment-form" action="/post/<%= encodeURIComponent(post.slug) %>/comment" method="POST">
-        <input type="text" name="author" placeholder="Your name (optional)">
-        <textarea name="body" placeholder="Write a comment..." required></textarea>
-        <button type="submit">Post Comment</button>
-        <p class="note">Comments are anonymous. Be respectful.</p>
-      </form>
+      <div class="comment-section">
+        <h3>Comments (<%= comments.length %>)</h3>
+        <% if (comments.length === 0) { %>
+          <p style="color:var(--text-muted)">No comments yet. Be the first!</p>
+        <% } else { %>
+          <% pagedComments.forEach(function(c) { %>
+            <div class="comment-card fade-in">
+              <div class="comment-author"><%= c.authorName || 'Anonymous' %></div>
+              <div class="comment-date"><%= formatDate(c.createdAt) %></div>
+              <div class="comment-body"><%= c.body %></div>
+            </div>
+          <% }) %>
+          <% if (totalCommentPages > 1) { %>
+          <div class="pagination">
+            <% for (let i = 1; i <= totalCommentPages; i++) { %>
+              <a href="?slug=<%= encodeURIComponent(post.slug) %>&page=<%= i %>" class="<%= i === commentPage ? 'active' : '' %>"><%= i %></a>
+            <% } %>
+          </div>
+          <% } %>
+        <% } %>
+
+        <form class="comment-form" action="/post/<%= encodeURIComponent(post.slug) %>/comment" method="POST">
+          <input type="text" name="author" placeholder="Your name (optional)">
+          <textarea name="body" placeholder="Write a comment..." required></textarea>
+          <button type="submit">Post Comment</button>
+          <p class="note">Comments are anonymous. Be respectful.</p>
+        </form>
+      </div>
     </div>
   </div>
+
+  <script>
+    // Reading progress bar
+    window.addEventListener('scroll', function() {
+      const bar = document.getElementById('reading-progress');
+      if (!bar) return;
+      const scrollTop = window.scrollY;
+      const docHeight = document.body.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      bar.style.width = pct + '%';
+    });
+  </script>
 <% } %>

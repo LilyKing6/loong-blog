@@ -1,7 +1,7 @@
 const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const path = require('path');
-const { renderMarkdown } = require('./public/md');
+const { renderMarkdown, extractTOC } = require('./public/md');
 const cookieParser = require('cookie-parser');
 
 const app = express();
