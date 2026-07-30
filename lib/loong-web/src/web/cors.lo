@@ -1,0 +1,16 @@
+import std.core.list using;
+
+import web.http_header using;
+import web.http_response using;
+
+public fn corsHeaders(origin: string) -> List<HttpHeaderField> {
+  HttpHeaderField("Access-Control-Allow-Origin", origin) ::
+  HttpHeaderField("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS") ::
+  HttpHeaderField("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-Id, Cookie") ::
+  HttpHeaderField("Access-Control-Max-Age", "86400") ::
+  List<HttpHeaderField>()
+}
+
+public fn applyCors(resp: HttpResp, origin: string) -> HttpResp {
+  resp.httpRespAddFields(corsHeaders(origin))
+}

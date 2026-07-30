@@ -1,0 +1,22 @@
+import std.core.time using;
+import std.sys.rt using;
+
+import web.context using;
+import web.http using;
+import web.http_statuscode using;
+
+public fn requestId(ctx: RequestContext) -> string {
+  ctx.variables.siteVariableValue("REQUEST_ID") ?? "unknown"
+}
+
+public impure fn logRequest(ctx: RequestContext, req: HttpReqHeader) -> Option<Error> {
+  print("-- Request [" + ctx.requestId() + "] " + req.method.string() + " " + req.resource);
+  None()
+}
+
+public impure fn logResponse(ctx: RequestContext, resp: HttpResp) -> Option<Error> {
+  statusCode = resp.header.status;
+  codeStr = statusCode.string().split(equals<char>[' ']).first([](s: string) -> bool { true }) ?? "???";
+  print("-- Response [" + ctx.requestId() + "] " + codeStr + " " + statusCode.string());
+  None()
+}

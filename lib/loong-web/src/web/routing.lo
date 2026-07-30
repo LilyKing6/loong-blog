@@ -1,0 +1,58 @@
+import web.context using;
+import web.errors using;
+import web.form using;
+import web.http using;
+import web.http_content_type using;
+import web.http_method using;
+import web.http_response using;
+import web.http_statuscode using;
+import web.static using;
+
+public fn routeGroup(prefix: string, routes: List<HttpRoute>) -> List<HttpRoute> {
+  routes.map([prefix] (r: HttpRoute) HttpRoute(r.method, prefix + r.path, r.handler))
+}
+
+public fn routeAllowedMethods(routes: List<HttpRoute>, url: string) -> List<HttpMethod> {
+  routes
+    .filter([url] (r: HttpRoute) r.path == url)
+    .map([] (r: HttpRoute) r.method)
+}
+
+public impure fn getRouteResponse(ctx: RequestContext, req: HttpReq) -> Option<HttpResp> {
+  (
+    m = req.header.method;
+    url = req.header.resource;
+    path = url.pathWithoutQuery();
+    allowed = ctx.content.routes.routeAllowedMethods(path);
+    route = ctx.content.routes.first([path, m] (r: HttpRoute) r.path == path && r.method == m);
+    if (route as HttpRoute r) {
+      Option(r.handler(RouteContext(url, ctx.variables, req.header.fields, req.body)))
+    } else if (!allowed.isEmpty()) {
+      Option(httpRespMethodNotAllowed(allowed))
+    } else {
+      None()
+    }
+  )
+}
+
+public impure fn getResponse(ctx: RequestContext, req: HttpReq) -> HttpResp {
+  (
+    m = req.header.method;
+    url = req.header.resource;
+    if (m == HttpMethod.Options) {
+      httpResp(HttpStatusCode.NoContent, "", HttpContentType.TextPlain)
+    } else {
+      (
+        routeResponse = ctx.getRouteResponse(req);
+        staticResponse = ctx.getStaticResponse(m, url);
+        if (routeResponse as HttpResp routeResp) {
+          routeResp
+        } else if (staticResponse as HttpResp staticResp) {
+          staticResp
+        } else {
+          notFoundResp(url)
+        }
+      )
+    }
+  )
+}

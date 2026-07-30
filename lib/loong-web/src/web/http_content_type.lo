@@ -1,0 +1,102 @@
+import std.{core, io, prim} using;
+
+public enum HttpContentType {
+  Binary, TextPlain, TextPlainUtf8, TextCss, TextHtml, TextJavascript, TextJson,
+  ApplicationXml, ApplicationWasm, ApplicationPdf, ApplicationZip,
+  FontWoff, FontWoff2, FontTtf, FontOtf, FontEot,
+  VideoMp4, VideoWebm, VideoOgg,
+  AudioMpeg, AudioOgg, AudioWav,
+  ImageAPng, ImageBmp, ImageGif, ImageIco, ImageJpeg, ImagePng, ImageSvg, ImageTiff, ImageWebP, ImageAvif
+}
+
+public fn string(t: HttpContentType) -> string {
+  if t == HttpContentType.Binary          { "application/octet-stream" }
+  else if t == HttpContentType.TextPlain       { "text/plain" }
+  else if t == HttpContentType.TextPlainUtf8   { "text/plain; charset=utf-8" }
+  else if t == HttpContentType.TextCss         { "text/css" }
+  else if t == HttpContentType.TextHtml        { "text/html" }
+  else if t == HttpContentType.TextJavascript  { "text/javascript" }
+  else if t == HttpContentType.TextJson        { "application/json" }
+  else if t == HttpContentType.ApplicationXml  { "application/xml" }
+  else if t == HttpContentType.ApplicationWasm { "application/wasm" }
+  else if t == HttpContentType.ApplicationPdf  { "application/pdf" }
+  else if t == HttpContentType.ApplicationZip  { "application/zip" }
+  else if t == HttpContentType.FontWoff        { "font/woff" }
+  else if t == HttpContentType.FontWoff2        { "font/woff2" }
+  else if t == HttpContentType.FontTtf          { "font/ttf" }
+  else if t == HttpContentType.FontOtf          { "font/otf" }
+  else if t == HttpContentType.FontEot          { "application/vnd.ms-fontobject" }
+  else if t == HttpContentType.VideoMp4         { "video/mp4" }
+  else if t == HttpContentType.VideoWebm        { "video/webm" }
+  else if t == HttpContentType.VideoOgg          { "video/ogg" }
+  else if t == HttpContentType.AudioMpeg        { "audio/mpeg" }
+  else if t == HttpContentType.AudioOgg          { "audio/ogg" }
+  else if t == HttpContentType.AudioWav          { "audio/wav" }
+  else if t == HttpContentType.ImageAPng       { "image/apng" }
+  else if t == HttpContentType.ImageBmp        { "image/bmp" }
+  else if t == HttpContentType.ImageGif        { "image/gif" }
+  else if t == HttpContentType.ImageIco        { "image/x-icon" }
+  else if t == HttpContentType.ImageJpeg       { "image/jpeg" }
+  else if t == HttpContentType.ImagePng        { "image/png" }
+  else if t == HttpContentType.ImageSvg        { "image/svg+xml" }
+  else if t == HttpContentType.ImageTiff       { "image/tiff" }
+  else if t == HttpContentType.ImageWebP       { "image/webp" }
+  else if t == HttpContentType.ImageAvif       { "image/avif" }
+  else                                    { "" }
+}
+
+public fn findHttpContentType(path: Path) -> HttpContentType {
+  findHttpContentType(path.extension() ?? "bin")
+}
+
+public fn findHttpContentType(extension: string) -> HttpContentType {
+  if extension == "txt"    { HttpContentType.TextPlain }
+  else if extension == "css"    { HttpContentType.TextCss }
+  else if extension == "html"   { HttpContentType.TextHtml }
+  else if extension == "htm"    { HttpContentType.TextHtml }
+  else if extension == "js"     { HttpContentType.TextJavascript }
+  else if extension == "mjs"    { HttpContentType.TextJavascript }
+  else if extension == "json"   { HttpContentType.TextJson }
+  else if extension == "xml"    { HttpContentType.ApplicationXml }
+  else if extension == "wasm"   { HttpContentType.ApplicationWasm }
+  else if extension == "pdf"    { HttpContentType.ApplicationPdf }
+  else if extension == "zip"    { HttpContentType.ApplicationZip }
+  else if extension == "woff"   { HttpContentType.FontWoff }
+  else if extension == "woff2"  { HttpContentType.FontWoff2 }
+  else if extension == "ttf"    { HttpContentType.FontTtf }
+  else if extension == "otf"    { HttpContentType.FontOtf }
+  else if extension == "eot"    { HttpContentType.FontEot }
+  else if extension == "mp4"    { HttpContentType.VideoMp4 }
+  else if extension == "webm"   { HttpContentType.VideoWebm }
+  else if extension == "ogv"    { HttpContentType.VideoOgg }
+  else if extension == "mp3"    { HttpContentType.AudioMpeg }
+  else if extension == "ogg"    { HttpContentType.AudioOgg }
+  else if extension == "wav"    { HttpContentType.AudioWav }
+  else if extension == "apng"   { HttpContentType.ImageAPng }
+  else if extension == "bmp"    { HttpContentType.ImageBmp }
+  else if extension == "gif"    { HttpContentType.ImageGif }
+  else if extension == "ico"    { HttpContentType.ImageIco }
+  else if extension == "cur"    { HttpContentType.ImageIco }
+  else if extension == "jpg"    { HttpContentType.ImageJpeg }
+  else if extension == "jpeg"   { HttpContentType.ImageJpeg }
+  else if extension == "jfif"   { HttpContentType.ImageJpeg }
+  else if extension == "pjpeg"  { HttpContentType.ImageJpeg }
+  else if extension == "pjp"    { HttpContentType.ImageJpeg }
+  else if extension == "png"    { HttpContentType.ImagePng }
+  else if extension == "svg"    { HttpContentType.ImageSvg }
+  else if extension == "tif"    { HttpContentType.ImageTiff }
+  else if extension == "tiff"   { HttpContentType.ImageTiff }
+  else if extension == "webp"   { HttpContentType.ImageWebP }
+  else if extension == "avif"   { HttpContentType.ImageAvif }
+  else                     { HttpContentType.Binary }
+}
+
+public fn isText(t: HttpContentType) -> bool {
+  t == HttpContentType.TextPlain      ||
+  t == HttpContentType.TextPlainUtf8  ||
+  t == HttpContentType.TextCss        ||
+  t == HttpContentType.TextHtml       ||
+  t == HttpContentType.TextJavascript ||
+  t == HttpContentType.TextJson       ||
+  t == HttpContentType.ApplicationXml
+}
