@@ -12,6 +12,7 @@ import web.errors using;
 import web.form using;
 import web.json using;
 import web.session using;
+import web.app using;
 import shared.content using;
 import blog.state using;
 
@@ -729,6 +730,7 @@ impure fn tagDeleteRoute(ctx: RouteContext) -> HttpResp {
 }
 
 impure fn blogRoutes() -> List<HttpRoute> {
+  webRoutes() ::
   routeGroup(
     "/api/blog",
     HttpRoute(HttpMethod.Get, "/health", impure [](ctx: RouteContext) -> HttpResp { blogHealth(ctx) }) ::

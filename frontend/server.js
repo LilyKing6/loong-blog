@@ -149,7 +149,7 @@ app.get('/post', async (req, res) => {
     const td = await api('/tags').catch(() => ({ tags: [] }));
     post.tags = (post.tagIds || []).map(tid => (td.tags || []).find(t => t.id === tid)).filter(Boolean);
     let catName = ''; try { const c = await api('/categories'); catName = ((c.categories || []).find(c => c.id === post.categoryId) || {}).name || ''; } catch {}
-    res.render('post', { post, comments: cd.comments || [], categoryName: catName, active: 'posts', formatDate, excerpt, renderMarkdown, error: null });
+    res.render('post', { post, comments: cd.comments || [], categoryName: catName, active: 'posts', formatDate, excerpt, renderMarkdown, extractTOC, error: null });
   } catch (e) {
     res.render('error', { code: 404, message: e.message, formatDate });
   }
