@@ -30,7 +30,7 @@
       <h1><%= post.title %></h1>
       <div class="post-meta">
         <span><%= formatDate(post.publishedAt) %></span>
-        <span><%= post.status %></span>
+        <span class="post-status"><%= post.status %></span>
         <% if (categoryName) { %><span><%= categoryName %></span><% } %>
       </div>
       <% if (post.tags && post.tags.length > 0) { %>

@@ -1,23 +1,21 @@
 <h2>Dashboard</h2>
-<div style="display:flex;gap:20px;flex-wrap:wrap">
-  <div class="sidebar-section" style="flex:1;min-width:200px">
-    <h4>Posts</h4>
-    <p style="font-size:32px;font-weight:700;color:#4a6b4a"><%= posts.length %></p>
-    <a href="/admin/posts" class="product_btn small">Manage</a>
+<div class="admin-stats">
+  <div class="admin-stat">
+    <div class="stat-number"><%= posts.length %></div>
+    <div class="stat-label">Posts</div>
+    <div class="stat-action"><a href="/admin/posts" class="product_btn small">Manage</a></div>
   </div>
-  <div class="sidebar-section" style="flex:1;min-width:200px">
-    <h4>Categories</h4>
-    <p style="font-size:32px;font-weight:700;color:#4a6b4a"><%= categories.length %></p>
-    <a href="/admin/categories" class="product_btn small">Manage</a>
+  <div class="admin-stat">
+    <div class="stat-number"><%= categories.length %></div>
+    <div class="stat-label">Categories</div>
+    <div class="stat-action"><a href="/admin/categories" class="product_btn small">Manage</a></div>
   </div>
-  <div class="sidebar-section" style="flex:1;min-width:200px">
-    <h4>Tags</h4>
-    <p style="font-size:32px;font-weight:700;color:#4a6b4a"><%= tags.length %></p>
-    <a href="/admin/tags" class="product_btn small">Manage</a>
+  <div class="admin-stat">
+    <div class="stat-number"><%= tags.length %></div>
+    <div class="stat-label">Tags</div>
+    <div class="stat-action"><a href="/admin/tags" class="product_btn small">Manage</a></div>
   </div>
-</div>
-
-<h2 style="margin-top:32px">Recent Posts</h2>
+</div><h2 style="margin-top:32px">Recent Posts</h2>
 <table class="admin-table">
   <thead><tr><th>Title</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
   <tbody>

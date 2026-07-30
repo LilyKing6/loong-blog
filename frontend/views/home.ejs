@@ -9,6 +9,10 @@
     <p class="eyebrow">Loong Web Framework</p>
     <h1>A blog built on Loong.</h1>
     <p>Writing, sharing, and documenting — all powered by a Loong web server. <%= posts.length %> published posts.</p>
+    <div class="hero-actions">
+      <a href="/posts" class="btn btn-primary">Explore Posts</a>
+      <a href="/docs" class="btn btn-ghost">Read Docs</a>
+    </div>
   </section>
 
   <% if (posts.length > 0) { %>
@@ -36,7 +40,7 @@
     <p>No published posts yet.</p>
   <% } %>
 
-  <div class="sidebar-row" style="display:flex;gap:40px;margin-top:40px;flex-wrap:wrap">
+  <div class="stats-grid">
     <% if (categories.length > 0) { %>
       <div class="sidebar-section" style="flex:1;min-width:200px">
         <h4>Categories</h4>
