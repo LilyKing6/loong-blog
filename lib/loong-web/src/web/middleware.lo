@@ -1,0 +1,100 @@
+import std.core.{lazy, option} using;
+import std.io.tcp using;
+
+import web.context using;
+import web.cors using;
+import web.errors using;
+import web.http using;
+import web.http_header using;
+import web.http_response using;
+import web.logging using;
+import web.routing using;
+
+public impure fn middlewareServerHeaders(resp: HttpResp, ctx: RequestContext) -> HttpResp {
+  requestId = ctx.variables.siteVariableValue("REQUEST_ID") ?? "unknown";
+  extraFields = (
+    HttpHeaderField("Date",               ctx.timeWriter.run(timeNow()))  ::
+    HttpHeaderField("Server",             "Loong")                        ::
+    HttpHeaderField("Connection",         "keep-alive")                   ::
+    HttpHeaderField("Keep-Alive",         "timeout=5, max=1000")          ::
+    HttpHeaderField("X-Request-Id",       requestId)
+  );
+  resp.httpRespAddFields(extraFields)
+}
+
+public impure fn applyResponseMiddleware(ctx: RequestContext, resp: HttpResp) -> HttpResp {
+  resp.applyCors(ctx.content.config.corsOrigin).middlewareServerHeaders(ctx)
+}
+
+public impure fn writeResponse(ctx: RequestContext, resp: HttpResp) -> Option<Error> {
+  finalResp = ctx.applyResponseMiddleware(resp);
+  finalRespTxt = ctx.respWriter.run(finalResp, WriterNewlineMode.CrLf);
+  actSeq(
+    lazy ctx.logResponse(resp),
+    lazy ctx.connection.write(finalRespTxt)
+  )
+}
+
+public impure fn readRemainingBody(read: StreamReadState, expectedLength: int) -> Either<Tuple<string, StreamReadState>, Error> {
+  invoke(
+    impure [expectedLength] (body: string, state: StreamReadState) -> Either<Tuple<string, StreamReadState>, Error> {
+      remaining = expectedLength - body.length();
+      if remaining <= 0 {
+        Tuple(body[0, expectedLength], StreamReadState(body[expectedLength, body.length()] + state.txt, state.reachedEnd, state.src))
+      } else {
+        chunk = state.src.read(remaining);
+        if chunk as Error err { err }
+        else if chunk as string txt { self(body + txt, StreamReadState("", state.reachedEnd, state.src)) }
+        else { Error("unexpected read result") }
+      }
+    }, read.txt, StreamReadState("", read.reachedEnd, read.src)
+  )
+}
+
+public impure fn buildRequest(ctx: RequestContext, header: HttpReqHeader, read: StreamReadState) -> Either<Tuple<HttpReq, StreamReadState>, Error> {
+  cl = header.contentLength();
+  if cl as int len {
+    bodyRead = read.readRemainingBody(len);
+    if bodyRead as Error err { err }
+    else if bodyRead as Tuple<string, StreamReadState> body {
+      Tuple(HttpReq(header, body.f1), body.f2)
+    } else { Error("unexpected body read result") }
+  } else { Tuple(HttpReq(header, ""), read) }
+}
+
+public impure fn handleRequest(ctx: RequestContext, headerTxt: string, read: StreamReadState) -> Either<StreamReadState, Error> {
+  parse = ctx.reqParser(headerTxt);
+  if parse as ParseFailure fail {
+    writeErr = ctx.writeResponse(badRequestResp("Invalid HTTP request header"));
+    if writeErr as Error wErr { wErr } else { read }
+  } else if parse as ParseSuccess<HttpReqHeader> suc {
+    reqRead = ctx.buildRequest(suc.val, read);
+    if reqRead as Error buildErr {
+      respErr = ctx.writeResponse(badRequestResp(buildErr.msg));
+      if respErr as Error rErr { rErr } else { read }
+    } else if reqRead as Tuple<HttpReq, StreamReadState> req {
+      responseErr = actSeq(
+        lazy ctx.logRequest(req.f1.header),
+        lazy ctx.writeResponse(
+          if req.f1.header.httpVersion == "1.1" { ctx.getResponse(req.f1) } else { versionNotSupportedResp() }
+        )
+      );
+      if responseErr as Error respE { respE } else { req.f2 }
+    } else { read }
+  } else { read }
+}
+
+public impure fn handleConnection(ctx: RequestContext) -> Option<Error> {
+  actSeq(
+    lazy print("- Client connected"),
+    lazy invoke(impure [ctx] (read: StreamReadState) -> Option<Error> {
+      if read.readUntil("\r\n\r\n" :: "\n\n") as Tuple<string, StreamReadState> r && r.f1.length() > 0 {
+        nextRead = ctx.handleRequest(r.f1, r.f2);
+        if nextRead as Error nextErr { nextErr }
+        else if nextRead as StreamReadState state { self(state) }
+        else { None() }
+      } else { None() }
+    }, StreamReadState(ctx.connection.socket)),
+    lazy print("- Client disconnected")
+  )
+}

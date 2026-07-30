@@ -6,8 +6,8 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const BLOG_API_URL = process.env.BLOG_API_URL || 'http://localhost:8080/api/blog';
-const DOCS_API_URL = process.env.DOCS_API_URL || 'http://localhost:8080/api/docs';
+const BLOG_API_URL = process.env.BLOG_API_URL || 'http://127.0.0.1:8080/api/blog';
+const DOCS_API_URL = process.env.DOCS_API_URL || 'http://127.0.0.1:8080/api/docs';
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));

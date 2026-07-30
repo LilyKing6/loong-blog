@@ -58,14 +58,24 @@ echo -e "${BLUE}→ 后端 ($TARGET) 端口 $BACKEND_PORT${NC}"
 BACKEND_PID=$!
 echo "  PID: $BACKEND_PID"
 
-# 等待后端启动
-sleep 2
+# 等待后端启动（最多 10 秒）
+echo -e "  Waiting for backend to start..."
+for i in $(seq 1 10); do
+  if curl -s --max-time 1 http://127.0.0.1:$BACKEND_PORT/api/blog/health > /dev/null 2>&1; then
+    echo -e "  ${GREEN}✓ Backend is ready${NC}"
+    break
+  fi
+  if [ $i -eq 10 ]; then
+    echo -e "  ${YELLOW}⚠ Backend not responding after 10s, starting frontend anyway${NC}"
+  fi
+  sleep 1
+done
 
 # 启动前端
 cd "$PROJECT_DIR/frontend"
 echo -e "${BLUE}→ 前端 (Node) 端口 $FRONTEND_PORT${NC}"
-BLOG_API_URL="http://localhost:$BACKEND_PORT/api/blog" \
-DOCS_API_URL="http://localhost:$BACKEND_PORT/api/docs" \
+BLOG_API_URL="http://127.0.0.1:$BACKEND_PORT/api/blog" \
+DOCS_API_URL="http://127.0.0.1:$BACKEND_PORT/api/docs" \
 PORT=$FRONTEND_PORT \
 node server.js &
 FRONTEND_PID=$!
